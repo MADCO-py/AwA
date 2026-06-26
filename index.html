@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AwA</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --bg: #080c14;
+  --blue: #3b9eff;
+  --blue-dim: #1a5fa8;
+  --text-dim: rgba(255,255,255,0.35);
+  --text-mid: rgba(255,255,255,0.65);
+}
+
+html,body {
+  width:100%;height:100%;
+  background: var(--bg);
+  color:#fff;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif;
+  overflow:hidden;
+}
+
+.app {
+  width:100%;height:100dvh;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:32px 24px;
+}
+
+/* ── BOTTLE ────────────────── */
+.bottle-wrap {
+  width: min(190px,50vw);
+  flex-shrink:0;
+  /* centered via flex parent, no extra tricks needed */
+}
+
+#bottleSvg {
+  width:100%;height:auto;display:block;
+  filter: drop-shadow(0 28px 48px rgba(0,0,0,0.7));
+  transition: filter 0.8s ease;
+}
+
+#bottleSvg.glowing {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+  0%,100%{filter:drop-shadow(0 28px 48px rgba(0,0,0,0.7)) drop-shadow(0 0 28px rgba(59,158,255,0.45));}
+  50%{filter:drop-shadow(0 28px 48px rgba(0,0,0,0.7)) drop-shadow(0 0 56px rgba(59,158,255,0.75)) drop-shadow(0 0 100px rgba(59,158,255,0.3));}
+}
+
+/* water fill animates smoothly */
+#waterRect {
+  transition: y 1.4s cubic-bezier(0.16,1,0.3,1),
+              height 1.4s cubic-bezier(0.16,1,0.3,1);
+}
+
+/* wave slow animations */
+.w1{animation:wv1 4s linear infinite;}
+.w2{animation:wv2 5.5s linear infinite;}
+@keyframes wv1{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes wv2{0%{transform:translateX(0)}100%{transform:translateX(50%)}}
+
+/* ── COUNTER ──────────────── */
+.counter {
+  margin-top:32px;
+  text-align:center;
+}
+
+.vasos-row {
+  display:flex;align-items:baseline;justify-content:center;gap:6px;
+}
+
+.vasos-num {
+  font-size:clamp(54px,13vw,70px);
+  font-weight:700;
+  letter-spacing:-0.04em;
+  line-height:1;
+  background:linear-gradient(150deg,#fff 20%,var(--blue) 110%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+
+.vasos-total {
+  font-size:clamp(22px,5.5vw,28px);
+  font-weight:300;
+  color:var(--text-dim);
+  letter-spacing:-0.02em;
+}
+
+.ml-row {
+  margin-top:8px;
+  font-size:clamp(11px,2.8vw,13px);
+  color:var(--text-dim);
+  letter-spacing:0.13em;
+}
+
+/* ── PROGRESS ─────────────── */
+.progress-track {
+  margin-top:20px;
+  width:min(190px,50vw);
+  height:3px;
+  background:rgba(255,255,255,0.06);
+  border-radius:3px;
+  overflow:hidden;
+}
+.progress-fill {
+  height:100%;
+  background:linear-gradient(90deg,var(--blue-dim),var(--blue));
+  border-radius:3px;
+  transition:width 1.4s cubic-bezier(0.16,1,0.3,1);
+  width:0%;
+}
+
+/* ── UNDO ─────────────────── */
+.btn-undo {
+  margin-top:24px;
+  background:rgba(59,158,255,0.06);
+  border:0.5px solid rgba(255,255,255,0.09);
+  color:var(--text-mid);
+  font-family:inherit;
+  font-size:13px;
+  letter-spacing:0.05em;
+  padding:9px 22px;
+  border-radius:100px;
+  cursor:pointer;
+  transition:background 0.2s,border-color 0.2s,color 0.2s,transform 0.12s;
+}
+.btn-undo:hover{background:rgba(59,158,255,0.12);border-color:rgba(59,158,255,0.28);color:#fff;}
+.btn-undo:active{transform:scale(0.96);}
+.btn-undo:disabled{opacity:0.2;pointer-events:none;}
+
+/* ── TOAST ───────────────── */
+.toast {
+  position:fixed;bottom:40px;left:50%;
+  transform:translateX(-50%) translateY(14px);
+  background:rgba(13,20,36,0.85);
+  border:0.5px solid rgba(59,158,255,0.22);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  color:rgba(255,255,255,0.82);
+  font-size:13px;letter-spacing:0.06em;
+  padding:10px 24px;border-radius:100px;
+  opacity:0;transition:opacity 0.3s,transform 0.3s;
+  pointer-events:none;white-space:nowrap;z-index:10;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+.complete-bar {
+  position:fixed;top:0;left:0;right:0;
+  text-align:center;padding:14px;
+  font-size:10px;letter-spacing:0.2em;
+  color:var(--blue);opacity:0;
+  transition:opacity 0.8s;pointer-events:none;
+}
+.complete-bar.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="bottle-wrap">
+    <svg id="bottleSvg" viewBox="0 0 200 420" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Owala FreeSip outline -->
+        <clipPath id="bc">
+          <path d="
+            M82,0 L82,6 C82,6 76,8 74,11 L70,17 L70,24
+            C58,28 42,46 38,70 L34,98
+            C32,108 31,118 31,128
+            L31,326
+            C31,358 55,382 87,382
+            L113,382
+            C145,382 169,358 169,326
+            L169,128
+            C169,118 168,108 166,98
+            L162,70
+            C158,46 142,28 130,24
+            L130,17 L126,11
+            C124,8 118,6 118,6
+            L118,0 Z
+          "/>
+        </clipPath>
+        <!-- Water rect — starts at bottom -->
+        <clipPath id="wc">
+          <rect id="waterRect" x="0" y="360" width="200" height="420"/>
+        </clipPath>
+      </defs>
+
+      <!-- Bottle body bg -->
+      <path d="
+        M82,0 L82,6 C82,6 76,8 74,11 L70,17 L70,24
+        C58,28 42,46 38,70 L34,98
+        C32,108 31,118 31,128
+        L31,326
+        C31,358 55,382 87,382
+        L113,382
+        C145,382 169,358 169,326
+        L169,128
+        C169,118 168,108 166,98
+        L162,70
+        C158,46 142,28 130,24
+        L130,17 L126,11
+        C124,8 118,6 118,6
+        L118,0 Z
+      " fill="#0c1526"/>
+
+      <!-- Water (clipped to bottle) -->
+      <g clip-path="url(#bc)">
+        <!-- Solid base -->
+        <rect x="0" y="0" width="200" height="420" fill="#0b3575" clip-path="url(#wc)"/>
+
+        <!-- Wave 1 (slower, softer) -->
+        <g clip-path="url(#wc)">
+          <path class="w1" id="wpath1" fill="rgba(35,110,210,0.9)" d=""/>
+        </g>
+        <!-- Wave 2 -->
+        <g clip-path="url(#wc)">
+          <path class="w2" id="wpath2" fill="rgba(59,158,255,0.5)" d=""/>
+        </g>
+
+        <!-- Surface shimmer -->
+        <g clip-path="url(#wc)">
+          <ellipse id="shimmer" cx="100" cy="0" rx="52" ry="5" fill="rgba(180,220,255,0.1)"/>
+        </g>
+      </g>
+
+      <!-- Bottle outline -->
+      <path d="
+        M82,0 L82,6 C82,6 76,8 74,11 L70,17 L70,24
+        C58,28 42,46 38,70 L34,98
+        C32,108 31,118 31,128
+        L31,326
+        C31,358 55,382 87,382
+        L113,382
+        C145,382 169,358 169,326
+        L169,128
+        C169,118 168,108 166,98
+        L162,70
+        C158,46 142,28 130,24
+        L130,17 L126,11
+        C124,8 118,6 118,6
+        L118,0 Z
+      " fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+
+      <!-- Glass highlight — left -->
+      <path d="M39,132 Q34,228 37,318" stroke="rgba(255,255,255,0.055)" stroke-width="7" fill="none" stroke-linecap="round"/>
+      <path d="M42,140 Q38,228 41,310" stroke="rgba(255,255,255,0.13)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+
+      <!-- Upper glass overlay (top half lighter) -->
+      <path d="
+        M82,0 L82,6 C82,6 76,8 74,11 L70,17 L70,24
+        C58,28 42,46 38,70 L34,98
+        C32,108 31,118 31,128 L31,210
+        C55,202 72,198 84,198 L116,198
+        C128,198 145,202 169,210
+        L169,128
+        C169,118 168,108 166,98
+        L162,70
+        C158,46 142,28 130,24
+        L130,17 L126,11
+        C124,8 118,6 118,6 L118,0 Z
+      " fill="rgba(255,255,255,0.022)"/>
+
+      <!-- ── CAP ── -->
+      <!-- Cap base -->
+      <rect x="68" y="-2" width="64" height="11" rx="4" fill="#101c35"/>
+      <rect x="68" y="-2" width="64" height="11" rx="4" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>
+      <!-- Collar -->
+      <rect x="64" y="8" width="72" height="18" rx="3" fill="#0d1829"/>
+      <rect x="64" y="8" width="72" height="18" rx="3" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>
+      <!-- Lid -->
+      <rect x="58" y="22" width="84" height="38" rx="6" fill="#111f3a"/>
+      <rect x="58" y="22" width="84" height="38" rx="6" fill="rgba(255,255,255,0.025)"/>
+      <rect x="58" y="22" width="84" height="38" rx="6" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>
+      <!-- FreeSip button ridge -->
+      <rect x="76" y="18" width="48" height="10" rx="3" fill="#192e58"/>
+      <rect x="76" y="18" width="48" height="10" rx="3" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="0.5"/>
+      <!-- Carry loop -->
+      <path d="M136,27 C152,27 160,34 160,46 C160,54 153,58 142,58" fill="none" stroke="#17274a" stroke-width="5" stroke-linecap="round"/>
+      <path d="M136,27 C152,27 160,34 160,46 C160,54 153,58 142,58" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="0.5" stroke-linecap="round"/>
+      <!-- Spout -->
+      <ellipse cx="100" cy="22" rx="16" ry="4" fill="#0a1120"/>
+      <ellipse cx="100" cy="22" rx="8" ry="2.5" fill="#060d18"/>
+      <!-- Lid gloss line -->
+      <path d="M63,26 Q100,30 137,26" stroke="rgba(255,255,255,0.10)" stroke-width="1" fill="none" stroke-linecap="round"/>
+      <!-- Label -->
+      <text x="100" y="46" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="7" font-weight="600" fill="rgba(255,255,255,0.15)" letter-spacing="3">OWALA</text>
+    </svg>
+  </div>
+
+  <div class="counter">
+    <div class="vasos-row">
+      <span class="vasos-num" id="numEl">0</span>
+      <span class="vasos-total">/ 8</span>
+    </div>
+    <div class="ml-row" id="mlEl">0 ML / 2000 ML</div>
+  </div>
+
+  <div class="progress-track">
+    <div class="progress-fill" id="progFill"></div>
+  </div>
+
+  <button class="btn-undo" id="btnUndo" disabled>- 1 vaso</button>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="complete-bar" id="completeBar">HIDRATACION COMPLETA</div>
+
+<script>
+const GOAL=8,ML=250,TOTAL=GOAL*ML;
+const BOT_TOP=70,BOT_BOT=358,BOT_H=BOT_BOT-BOT_TOP;
+
+function todayKey(){const d=new Date();return`awa-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`}
+function getCount(){const r=localStorage.getItem(todayKey());return r?Math.min(parseInt(r),GOAL):0}
+function setCount(n){localStorage.setItem(todayKey(),Math.max(0,Math.min(n,GOAL)))}
+
+function buildWave(y,amp,freq,phase){
+  let d=`M0,${y+phase}`;
+  for(let x=0;x<=400;x+=5){
+    d+=` L${x},${y-amp*Math.sin((x/freq+phase/10)*Math.PI*2)}`;
+  }
+  return d+` L400,440 L0,440 Z`;
+}
+
+function updateWaves(y){
+  document.getElementById('wpath1').setAttribute('d',buildWave(y,7,42,0));
+  document.getElementById('wpath2').setAttribute('d',buildWave(y,5,30,2));
+  document.getElementById('shimmer').setAttribute('cy',y-3);
+}
+
+function render(n,anim){
+  const frac=n/GOAL;
+  const fillH=frac*BOT_H;
+  const yTop=BOT_BOT-fillH;
+  const rect=document.getElementById('waterRect');
+  if(!anim){
+    rect.style.transition='none';
+    requestAnimationFrame(()=>{
+      rect.setAttribute('y',yTop);
+      rect.setAttribute('height',fillH+30);
+      updateWaves(yTop);
+      requestAnimationFrame(()=>rect.style.transition='');
+    });
+  } else {
+    rect.setAttribute('y',yTop);
+    rect.setAttribute('height',fillH+30);
+    // delay wave update to match water settling
+    setTimeout(()=>updateWaves(yTop),100);
+  }
+  document.getElementById('numEl').textContent=n;
+  document.getElementById('mlEl').textContent=`${n*ML} ML / ${TOTAL} ML`;
+  document.getElementById('progFill').style.width=`${frac*100}%`;
+  document.getElementById('btnUndo').disabled=n===0;
+  const svg=document.getElementById('bottleSvg');
+  const bar=document.getElementById('completeBar');
+  if(n>=GOAL){svg.classList.add('glowing');bar.classList.add('show');}
+  else{svg.classList.remove('glowing');bar.classList.remove('show');}
+}
+
+let tt;
+function showToast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),2400);
+}
+
+function drink(){
+  let n=getCount();
+  if(n>=GOAL){showToast('Meta ya completada');return}
+  n++;setCount(n);render(n,true);
+  if(n===GOAL)setTimeout(()=>showToast('Hidratacion completa'),600);
+}
+
+function undo(){
+  let n=getCount();if(n<=0)return;
+  n--;setCount(n);render(n,true);showToast('Vaso removido');
+}
+
+document.getElementById('btnUndo').addEventListener('click',undo);
+
+const p=new URLSearchParams(location.search);
+if(p.get('action')==='drink'){history.replaceState({},'',location.pathname);setTimeout(drink,400);}
+
+render(getCount(),false);
+
+function schedReset(){
+  const now=new Date();
+  const ms=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1)-now;
+  setTimeout(()=>{render(0,true);schedReset();},ms);
+}
+schedReset();
+</script>
+</body>
+</html>
