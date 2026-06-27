@@ -6,360 +6,504 @@
 <title>AwA</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-
-:root {
-  --bg: #080c14;
-  --blue: #3b9eff;
-  --blue-dim: #1a5fa8;
-  --text-dim: rgba(255,255,255,0.35);
-  --text-mid: rgba(255,255,255,0.65);
+:root{
+  --bg:#080c14;
+  --blue:#3b9eff;
+  --blue-dim:#1a5fa8;
+  --text-dim:rgba(255,255,255,0.35);
+  --text-mid:rgba(255,255,255,0.65);
 }
-
-html,body {
+html,body{
   width:100%;height:100%;
-  background: var(--bg);
-  color:#fff;
+  background:var(--bg);color:#fff;
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif;
   overflow:hidden;
 }
-
-.app {
-  width:100%;height:100dvh;
+.stage{width:100%;height:100dvh;position:relative;overflow:hidden;}
+.bottle-card{
+  position:absolute;inset:0;
   display:flex;flex-direction:column;
   align-items:center;justify-content:center;
-  padding:32px 24px;
+  padding:28px 24px;
+  will-change:transform,opacity;
 }
-
-/* ── BOTTLE ────────────────── */
-.bottle-wrap {
-  width: min(190px,50vw);
-  flex-shrink:0;
-  /* centered via flex parent, no extra tricks needed */
+.slide-out-left{animation:soleft .55s cubic-bezier(.4,0,.2,1) forwards;}
+.slide-in-right{animation:siright .55s cubic-bezier(.34,1.2,.64,1) forwards;}
+@keyframes soleft{0%{transform:translateX(0) scale(1);opacity:1}40%{transform:translateX(-8%) scale(.94);opacity:.7}100%{transform:translateX(-115%) scale(.88);opacity:0}}
+@keyframes siright{0%{transform:translateX(115%) scale(.88);opacity:0}60%{transform:translateX(4%) scale(.97);opacity:1}100%{transform:translateX(0) scale(1);opacity:1}}
+.dots{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:7px;z-index:20;}
+.dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.18);transition:background .3s,transform .3s;}
+.dot.active{background:var(--blue);transform:scale(1.35);}
+.bottle-wrap{width:min(200px,52vw);flex-shrink:0;}
+.bottle-svg{width:100%;height:auto;display:block;transition:filter .8s ease;filter:drop-shadow(0 24px 44px rgba(0,0,0,.8));}
+.bottle-svg.glowing{animation:gpulse 2s ease-in-out infinite;}
+@keyframes gpulse{0%,100%{filter:drop-shadow(0 24px 44px rgba(0,0,0,.8)) drop-shadow(0 0 24px rgba(59,158,255,.4))}50%{filter:drop-shadow(0 24px 44px rgba(0,0,0,.8)) drop-shadow(0 0 52px rgba(59,158,255,.75)) drop-shadow(0 0 100px rgba(59,158,255,.28))}}
+.counter{margin-top:24px;text-align:center;}
+.lnum{
+  font-size:clamp(50px,12vw,66px);font-weight:700;
+  letter-spacing:-.04em;line-height:1;
+  color:#ffffff;
 }
-
-#bottleSvg {
-  width:100%;height:auto;display:block;
-  filter: drop-shadow(0 28px 48px rgba(0,0,0,0.7));
-  transition: filter 0.8s ease;
+.lunit{font-size:clamp(20px,5vw,26px);font-weight:300;color:var(--text-dim);}
+.mlrow{margin-top:6px;font-size:clamp(11px,2.8vw,13px);color:var(--text-dim);letter-spacing:.13em;}
+.blabel{margin-top:3px;font-size:11px;color:rgba(255,255,255,.18);letter-spacing:.18em;text-transform:uppercase;}
+.ptrack{margin-top:16px;width:min(200px,52vw);height:3px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;}
+.pfill{height:100%;background:linear-gradient(90deg,var(--blue-dim),var(--blue));border-radius:3px;transition:width 1.5s cubic-bezier(.16,1,.3,1);width:0%;}
+.btn-row{margin-top:18px;display:flex;gap:10px;align-items:center;}
+.btn-ghost{
+  background:rgba(59,158,255,.06);border:.5px solid rgba(255,255,255,.09);
+  color:var(--text-mid);font-family:inherit;font-size:13px;letter-spacing:.05em;
+  padding:9px 20px;border-radius:100px;cursor:pointer;
+  transition:background .2s,border-color .2s,color .2s,transform .12s;
 }
-
-#bottleSvg.glowing {
-  animation: glow-pulse 2s ease-in-out infinite;
+.btn-ghost:hover{background:rgba(59,158,255,.12);border-color:rgba(59,158,255,.28);color:#fff;}
+.btn-ghost:active{transform:scale(.96);}
+.btn-ghost:disabled{opacity:.2;pointer-events:none;}
+.btn-add{
+  background:linear-gradient(135deg,rgba(59,158,255,.14),rgba(59,158,255,.07));
+  border:.5px solid rgba(59,158,255,.32);color:var(--blue);
+  font-family:inherit;font-size:13px;letter-spacing:.06em;
+  padding:10px 24px;border-radius:100px;cursor:pointer;
+  transition:background .2s,transform .12s,opacity .35s;
+  opacity:0;pointer-events:none;
 }
-
-@keyframes glow-pulse {
-  0%,100%{filter:drop-shadow(0 28px 48px rgba(0,0,0,0.7)) drop-shadow(0 0 28px rgba(59,158,255,0.45));}
-  50%{filter:drop-shadow(0 28px 48px rgba(0,0,0,0.7)) drop-shadow(0 0 56px rgba(59,158,255,0.75)) drop-shadow(0 0 100px rgba(59,158,255,0.3));}
+.btn-add.visible{opacity:1;pointer-events:auto;}
+.btn-add:active{transform:scale(.96);}
+.modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  display:flex;align-items:center;justify-content:center;
+  z-index:100;opacity:0;pointer-events:none;transition:opacity .3s;
 }
-
-/* water fill animates smoothly */
-#waterRect {
-  transition: y 1.4s cubic-bezier(0.16,1,0.3,1),
-              height 1.4s cubic-bezier(0.16,1,0.3,1);
+.modal-bg.show{opacity:1;pointer-events:auto;}
+.modal{
+  background:#0f1829;border:.5px solid rgba(255,255,255,.1);
+  border-radius:20px;padding:32px 28px;width:min(320px,88vw);text-align:center;
+  transform:scale(.92) translateY(16px);
+  transition:transform .35s cubic-bezier(.34,1.2,.64,1);
 }
-
-/* wave slow animations */
-.w1{animation:wv1 4s linear infinite;}
-.w2{animation:wv2 5.5s linear infinite;}
-@keyframes wv1{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-@keyframes wv2{0%{transform:translateX(0)}100%{transform:translateX(50%)}}
-
-/* ── COUNTER ──────────────── */
-.counter {
-  margin-top:32px;
-  text-align:center;
+.modal-bg.show .modal{transform:scale(1) translateY(0);}
+.modal h2{font-size:18px;font-weight:600;margin-bottom:8px;}
+.modal p{font-size:13px;color:var(--text-dim);margin-bottom:24px;line-height:1.5;}
+.modal input{
+  width:100%;background:rgba(255,255,255,.05);
+  border:.5px solid rgba(255,255,255,.12);color:#fff;
+  font-family:inherit;font-size:20px;text-align:center;
+  padding:14px;border-radius:12px;outline:none;margin-bottom:20px;
+  transition:border-color .2s;
 }
-
-.vasos-row {
-  display:flex;align-items:baseline;justify-content:center;gap:6px;
+.modal input:focus{border-color:rgba(59,158,255,.5);}
+.btn-confirm{
+  width:100%;background:var(--blue);color:#fff;
+  border:none;font-family:inherit;font-size:15px;font-weight:600;
+  padding:14px;border-radius:12px;cursor:pointer;
+  transition:opacity .2s,transform .12s;
 }
-
-.vasos-num {
-  font-size:clamp(54px,13vw,70px);
-  font-weight:700;
-  letter-spacing:-0.04em;
-  line-height:1;
-  background:linear-gradient(150deg,#fff 20%,var(--blue) 110%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  background-clip:text;
-}
-
-.vasos-total {
-  font-size:clamp(22px,5.5vw,28px);
-  font-weight:300;
-  color:var(--text-dim);
-  letter-spacing:-0.02em;
-}
-
-.ml-row {
-  margin-top:8px;
-  font-size:clamp(11px,2.8vw,13px);
-  color:var(--text-dim);
-  letter-spacing:0.13em;
-}
-
-/* ── PROGRESS ─────────────── */
-.progress-track {
-  margin-top:20px;
-  width:min(190px,50vw);
-  height:3px;
-  background:rgba(255,255,255,0.06);
-  border-radius:3px;
-  overflow:hidden;
-}
-.progress-fill {
-  height:100%;
-  background:linear-gradient(90deg,var(--blue-dim),var(--blue));
-  border-radius:3px;
-  transition:width 1.4s cubic-bezier(0.16,1,0.3,1);
-  width:0%;
-}
-
-/* ── UNDO ─────────────────── */
-.btn-undo {
-  margin-top:24px;
-  background:rgba(59,158,255,0.06);
-  border:0.5px solid rgba(255,255,255,0.09);
-  color:var(--text-mid);
-  font-family:inherit;
-  font-size:13px;
-  letter-spacing:0.05em;
-  padding:9px 22px;
-  border-radius:100px;
-  cursor:pointer;
-  transition:background 0.2s,border-color 0.2s,color 0.2s,transform 0.12s;
-}
-.btn-undo:hover{background:rgba(59,158,255,0.12);border-color:rgba(59,158,255,0.28);color:#fff;}
-.btn-undo:active{transform:scale(0.96);}
-.btn-undo:disabled{opacity:0.2;pointer-events:none;}
-
-/* ── TOAST ───────────────── */
-.toast {
-  position:fixed;bottom:40px;left:50%;
+.btn-confirm:hover{opacity:.88;}
+.btn-confirm:active{transform:scale(.98);}
+.toast{
+  position:fixed;bottom:46px;left:50%;
   transform:translateX(-50%) translateY(14px);
-  background:rgba(13,20,36,0.85);
-  border:0.5px solid rgba(59,158,255,0.22);
+  background:rgba(13,20,36,.88);border:.5px solid rgba(59,158,255,.22);
   backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  color:rgba(255,255,255,0.82);
-  font-size:13px;letter-spacing:0.06em;
+  color:rgba(255,255,255,.82);font-size:13px;letter-spacing:.06em;
   padding:10px 24px;border-radius:100px;
-  opacity:0;transition:opacity 0.3s,transform 0.3s;
-  pointer-events:none;white-space:nowrap;z-index:10;
+  opacity:0;transition:opacity .3s,transform .3s;
+  pointer-events:none;white-space:nowrap;z-index:50;
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-
-.complete-bar {
-  position:fixed;top:0;left:0;right:0;
-  text-align:center;padding:14px;
-  font-size:10px;letter-spacing:0.2em;
-  color:var(--blue);opacity:0;
-  transition:opacity 0.8s;pointer-events:none;
+.complete-bar{
+  position:fixed;top:0;left:0;right:0;text-align:center;
+  padding:14px;font-size:10px;letter-spacing:.2em;
+  color:var(--blue);opacity:0;transition:opacity .8s;pointer-events:none;z-index:30;
 }
 .complete-bar.show{opacity:1;}
 </style>
 </head>
 <body>
-<div class="app">
-
-  <div class="bottle-wrap">
-    <svg id="bottleSvg" viewBox="0 0 200 420" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <!-- Owala FreeSip outline -->
-        <clipPath id="bc">
-          <path d="
-            M82,0 L82,6 C82,6 76,8 74,11 L70,17 L70,24
-            C58,28 42,46 38,70 L34,98
-            C32,108 31,118 31,128
-            L31,326
-            C31,358 55,382 87,382
-            L113,382
-            C145,382 169,358 169,326
-            L169,128
-            C169,118 168,108 166,98
-            L162,70
-            C158,46 142,28 130,24
-            L130,17 L126,11
-            C124,8 118,6 118,6
-            L118,0 Z
-          "/>
-        </clipPath>
-        <!-- Water rect — starts at bottom -->
-        <clipPath id="wc">
-          <rect id="waterRect" x="0" y="360" width="200" height="420"/>
-        </clipPath>
-      </defs>
-
-      <!-- Bottle body bg -->
-      <path d="
-        M82,0 L82,6 C82,6 76,8 74,11 L70,17 L70,24
-        C58,28 42,46 38,70 L34,98
-        C32,108 31,118 31,128
-        L31,326
-        C31,358 55,382 87,382
-        L113,382
-        C145,382 169,358 169,326
-        L169,128
-        C169,118 168,108 166,98
-        L162,70
-        C158,46 142,28 130,24
-        L130,17 L126,11
-        C124,8 118,6 118,6
-        L118,0 Z
-      " fill="#0c1526"/>
-
-      <!-- Water (clipped to bottle) -->
-      <g clip-path="url(#bc)">
-        <!-- Solid base -->
-        <rect x="0" y="0" width="200" height="420" fill="#0b3575" clip-path="url(#wc)"/>
-
-        <!-- Wave 1 (slower, softer) -->
-        <g clip-path="url(#wc)">
-          <path class="w1" id="wpath1" fill="rgba(35,110,210,0.9)" d=""/>
-        </g>
-        <!-- Wave 2 -->
-        <g clip-path="url(#wc)">
-          <path class="w2" id="wpath2" fill="rgba(59,158,255,0.5)" d=""/>
-        </g>
-
-        <!-- Surface shimmer -->
-        <g clip-path="url(#wc)">
-          <ellipse id="shimmer" cx="100" cy="0" rx="52" ry="5" fill="rgba(180,220,255,0.1)"/>
-        </g>
-      </g>
-
-      <!-- Bottle outline -->
-      <path d="
-        M82,0 L82,6 C82,6 76,8 74,11 L70,17 L70,24
-        C58,28 42,46 38,70 L34,98
-        C32,108 31,118 31,128
-        L31,326
-        C31,358 55,382 87,382
-        L113,382
-        C145,382 169,358 169,326
-        L169,128
-        C169,118 168,108 166,98
-        L162,70
-        C158,46 142,28 130,24
-        L130,17 L126,11
-        C124,8 118,6 118,6
-        L118,0 Z
-      " fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
-
-      <!-- Glass highlight — left -->
-      <path d="M39,132 Q34,228 37,318" stroke="rgba(255,255,255,0.055)" stroke-width="7" fill="none" stroke-linecap="round"/>
-      <path d="M42,140 Q38,228 41,310" stroke="rgba(255,255,255,0.13)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-
-      <!-- Upper glass overlay (top half lighter) -->
-      <path d="
-        M82,0 L82,6 C82,6 76,8 74,11 L70,17 L70,24
-        C58,28 42,46 38,70 L34,98
-        C32,108 31,118 31,128 L31,210
-        C55,202 72,198 84,198 L116,198
-        C128,198 145,202 169,210
-        L169,128
-        C169,118 168,108 166,98
-        L162,70
-        C158,46 142,28 130,24
-        L130,17 L126,11
-        C124,8 118,6 118,6 L118,0 Z
-      " fill="rgba(255,255,255,0.022)"/>
-
-      <!-- ── CAP ── -->
-      <!-- Cap base -->
-      <rect x="68" y="-2" width="64" height="11" rx="4" fill="#101c35"/>
-      <rect x="68" y="-2" width="64" height="11" rx="4" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>
-      <!-- Collar -->
-      <rect x="64" y="8" width="72" height="18" rx="3" fill="#0d1829"/>
-      <rect x="64" y="8" width="72" height="18" rx="3" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>
-      <!-- Lid -->
-      <rect x="58" y="22" width="84" height="38" rx="6" fill="#111f3a"/>
-      <rect x="58" y="22" width="84" height="38" rx="6" fill="rgba(255,255,255,0.025)"/>
-      <rect x="58" y="22" width="84" height="38" rx="6" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>
-      <!-- FreeSip button ridge -->
-      <rect x="76" y="18" width="48" height="10" rx="3" fill="#192e58"/>
-      <rect x="76" y="18" width="48" height="10" rx="3" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="0.5"/>
-      <!-- Carry loop -->
-      <path d="M136,27 C152,27 160,34 160,46 C160,54 153,58 142,58" fill="none" stroke="#17274a" stroke-width="5" stroke-linecap="round"/>
-      <path d="M136,27 C152,27 160,34 160,46 C160,54 153,58 142,58" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="0.5" stroke-linecap="round"/>
-      <!-- Spout -->
-      <ellipse cx="100" cy="22" rx="16" ry="4" fill="#0a1120"/>
-      <ellipse cx="100" cy="22" rx="8" ry="2.5" fill="#060d18"/>
-      <!-- Lid gloss line -->
-      <path d="M63,26 Q100,30 137,26" stroke="rgba(255,255,255,0.10)" stroke-width="1" fill="none" stroke-linecap="round"/>
-      <!-- Label -->
-      <text x="100" y="46" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="7" font-weight="600" fill="rgba(255,255,255,0.15)" letter-spacing="3">OWALA</text>
-    </svg>
+<div class="stage" id="stage"></div>
+<div class="dots" id="dots"></div>
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h2>Nueva botella</h2>
+    <p>Tamaño en mililitros</p>
+    <input type="number" id="sizeInput" placeholder="500" min="100" max="3000" inputmode="numeric"/>
+    <button class="btn-confirm" id="btnConfirm">Agregar</button>
   </div>
-
-  <div class="counter">
-    <div class="vasos-row">
-      <span class="vasos-num" id="numEl">0</span>
-      <span class="vasos-total">/ 8</span>
-    </div>
-    <div class="ml-row" id="mlEl">0 ML / 2000 ML</div>
-  </div>
-
-  <div class="progress-track">
-    <div class="progress-fill" id="progFill"></div>
-  </div>
-
-  <button class="btn-undo" id="btnUndo" disabled>- 1 vaso</button>
 </div>
-
 <div class="toast" id="toast"></div>
 <div class="complete-bar" id="completeBar">HIDRATACION COMPLETA</div>
 
 <script>
-const GOAL=8,ML=250,TOTAL=GOAL*ML;
-const BOT_TOP=70,BOT_BOT=358,BOT_H=BOT_BOT-BOT_TOP;
+const ML_PER_DRINK=20, GOAL_ML=2000, MAX_BOTTLES=3;
+const VW=200, VH=520;          // SVG viewBox dims
+const BODY_TOP=90, BODY_BOT=468; // fill area inside bottle body
+const BODY_H=BODY_BOT-BODY_TOP;
 
-function todayKey(){const d=new Date();return`awa-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`}
-function getCount(){const r=localStorage.getItem(todayKey());return r?Math.min(parseInt(r),GOAL):0}
-function setCount(n){localStorage.setItem(todayKey(),Math.max(0,Math.min(n,GOAL)))}
+/* ── tilt state (gyroscope) ──────────── */
+let tiltX=0;   // -1 ... +1  (left tilt negative, right positive)
+const TILT_DAMP=0.06;
+let lastTiltX=0;
 
-function buildWave(y,amp,freq,phase){
-  let d=`M0,${y+phase}`;
-  for(let x=0;x<=400;x+=5){
-    d+=` L${x},${y-amp*Math.sin((x/freq+phase/10)*Math.PI*2)}`;
+/* ── active water level per uid ─────── */
+const waterLevels={};  // uid -> 0..1 fraction
+
+/* ── wave canvas IDs map ─────────────── */
+// Each bottle has a <canvas> element where we draw the water
+
+/* ── bottle body path (viewBox 200x520) ─
+   Owala FreeSip profile:
+   - slim neck
+   - wide shoulder curve
+   - tall cylindrical body
+   - flat bottom with slight radius
+*/
+const BP=`M88,0 L88,10
+  C88,10 82,12 79,16 L75,24 L75,34
+  C58,40 38,62 34,92
+  L30,126 C28,138 27,150 27,162
+  L27,400
+  C27,438 60,468 100,468
+  L100,468
+  C140,468 173,438 173,400
+  L173,162 C173,150 172,138 170,126
+  L166,92
+  C162,62 142,40 125,34
+  L125,24 L121,16
+  C118,12 112,10 112,10
+  L112,0 Z`;
+
+function makeBottleSVG(uid){
+  return `<svg class="bottle-svg" id="svg-${uid}" viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="bc-${uid}"><path d="${BP}"/></clipPath>
+  </defs>
+
+  <!-- body dark bg -->
+  <path d="${BP}" fill="#0b1628"/>
+
+  <!-- water canvas via foreignObject so JS can draw smooth waves -->
+  <foreignObject x="0" y="0" width="${VW}" height="${VH}" clip-path="url(#bc-${uid})">
+    <canvas xmlns="http://www.w3.org/1999/xhtml"
+      id="wc-${uid}" width="${VW}" height="${VH}"
+      style="display:block;width:${VW}px;height:${VH}px;"></canvas>
+  </foreignObject>
+
+  <!-- bottle body outline -->
+  <path d="${BP}" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.2"/>
+
+  <!-- glass highlight left -->
+  <path d="M33,168 Q27,280 30,390" stroke="rgba(255,255,255,0.06)" stroke-width="8" fill="none" stroke-linecap="round" clip-path="url(#bc-${uid})"/>
+  <path d="M36,176 Q31,280 33,382" stroke="rgba(255,255,255,0.16)" stroke-width="1.3" fill="none" stroke-linecap="round" clip-path="url(#bc-${uid})"/>
+
+  <!-- upper glare overlay -->
+  <path d="M88,0 L88,10 C88,10 82,12 79,16 L75,24 L75,34 C58,40 38,62 34,92 L30,126 C28,138 27,150 27,162 L27,280 C55,270 74,266 88,266 L112,266 C126,266 145,270 173,280 L173,162 C173,150 172,138 170,126 L166,92 C162,62 142,40 125,34 L125,24 L121,16 C118,12 112,10 112,10 L112,0 Z" fill="rgba(255,255,255,0.022)" clip-path="url(#bc-${uid})"/>
+
+  <!-- ── CAP — clean Owala style ── -->
+  <!-- neck base -->
+  <rect x="74" y="0" width="52" height="14" rx="5" fill="#111d38"/>
+  <rect x="74" y="0" width="52" height="14" rx="5" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width=".5"/>
+  <!-- collar ring -->
+  <rect x="70" y="12" width="60" height="22" rx="4" fill="#0e1a30"/>
+  <rect x="70" y="12" width="60" height="22" rx="4" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width=".5"/>
+  <!-- main lid -->
+  <rect x="62" y="30" width="76" height="50" rx="10" fill="#131f3c"/>
+  <rect x="62" y="30" width="76" height="50" rx="10" fill="rgba(255,255,255,0.025)"/>
+  <rect x="62" y="30" width="76" height="50" rx="10" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width=".5"/>
+  <!-- lid top bevel -->
+  <rect x="74" y="26" width="52" height="12" rx="5" fill="#1c3060"/>
+  <rect x="74" y="26" width="52" height="12" rx="5" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width=".5"/>
+  <!-- push pill -->
+  <rect x="84" y="30" width="32" height="6" rx="3" fill="rgba(59,158,255,0.22)"/>
+  <!-- spout -->
+  <ellipse cx="100" cy="30" rx="16" ry="5" fill="#080f1e"/>
+  <ellipse cx="100" cy="30" rx="8" ry="3" fill="#050a14"/>
+  <!-- carry loop — clean arc, right side -->
+  <path d="M132,36 C152,36 164,46 164,62 C164,74 155,80 140,80" fill="none" stroke="#182848" stroke-width="9" stroke-linecap="round"/>
+  <path d="M132,36 C152,36 164,46 164,62 C164,74 155,80 140,80" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width=".8" stroke-linecap="round"/>
+  <!-- inner loop highlight -->
+  <path d="M132,36 C150,36 160,46 160,62 C160,72 153,77 140,78" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="4" stroke-linecap="round"/>
+  <!-- lid gloss -->
+  <path d="M67,34 Q100,40 133,34" stroke="rgba(255,255,255,0.12)" stroke-width="1" fill="none" stroke-linecap="round"/>
+  <!-- owala text -->
+  <text x="100" y="60" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="7" font-weight="600" fill="rgba(255,255,255,0.16)" letter-spacing="2.5">OWALA</text>
+  <!-- lid bottom shadow line -->
+  <line x1="63" y1="78" x2="137" y2="78" stroke="rgba(0,0,0,0.3)" stroke-width="1.5"/>
+
+  <!-- base shadow ellipse -->
+  <ellipse cx="100" cy="464" rx="42" ry="6" fill="rgba(0,0,0,0.3)"/>
+</svg>`;
+}
+
+/* ── canvas water renderer ───────────── */
+function lerp(a,b,t){return a+(b-a)*t;}
+
+const canvasStates={}; // uid -> {targetY, currentY, phase1, phase2, rafId}
+
+function startWaterRaf(uid){
+  const cs = canvasStates[uid];
+  if(!cs) return;
+
+  function frame(){
+    const cvs = document.getElementById(`wc-${uid}`);
+    if(!cvs){ cs.rafId=null; return; }
+    const ctx = cvs.getContext('2d');
+
+    // smooth water level
+    cs.currentY = lerp(cs.currentY, cs.targetY, 0.04);
+
+    // smooth tilt
+    cs.tiltPhase = lerp(cs.tiltPhase||0, tiltX*18, 0.08);
+
+    // advance wave phases
+    cs.phase1 = (cs.phase1||0) + 0.018;
+    cs.phase2 = (cs.phase2||0) + 0.013;
+
+    const W=VW, H=VH;
+    ctx.clearRect(0,0,W,H);
+
+    const y = cs.currentY;
+    if(y >= H){ cs.rafId=requestAnimationFrame(frame); return; } // empty
+
+    // wave surface path using quadratic curves for smooth look
+    function drawWaterShape(phaseOff, amp, color){
+      ctx.beginPath();
+      const waveY = y + cs.tiltPhase; // tilt shifts apparent surface
+      ctx.moveTo(0, H);
+      ctx.lineTo(0, waveY);
+
+      // smooth sine wave using bezier segments
+      const segs=12;
+      const segW=W/segs;
+      for(let i=0;i<segs;i++){
+        const x0=i*segW;
+        const x1=(i+1)*segW;
+        const xm=(x0+x1)/2;
+        const y0=waveY - amp*Math.sin(cs.phase1*2+phaseOff + i*(Math.PI*2/segs));
+        const y1=waveY - amp*Math.sin(cs.phase1*2+phaseOff + (i+1)*(Math.PI*2/segs));
+        const ym=waveY - amp*Math.sin(cs.phase1*2+phaseOff + (i+0.5)*(Math.PI*2/segs));
+        ctx.quadraticCurveTo(xm, ym, x1, y1);
+      }
+      ctx.lineTo(W, H);
+      ctx.closePath();
+      ctx.fillStyle=color;
+      ctx.fill();
+    }
+
+    // deep base
+    ctx.fillStyle='#0a3272';
+    ctx.fillRect(0, y + cs.tiltPhase + 6, W, H);
+
+    // wave layers (back to front)
+    drawWaterShape(Math.PI*0.3, 7, 'rgba(20,90,190,0.95)');
+    drawWaterShape(Math.PI*0.8, 5, 'rgba(28,110,210,0.85)');
+    drawWaterShape(0, 4, 'rgba(59,158,255,0.55)');
+
+    // surface shimmer line
+    ctx.beginPath();
+    const sy = y + cs.tiltPhase + 2;
+    ctx.moveTo(10, sy - 3*Math.sin(cs.phase2*3));
+    for(let x=10;x<=W-10;x+=4){
+      ctx.lineTo(x, sy - 3*Math.sin(cs.phase2*3 + x*0.08));
+    }
+    ctx.strokeStyle='rgba(160,210,255,0.18)';
+    ctx.lineWidth=2.5;
+    ctx.stroke();
+
+    cs.rafId=requestAnimationFrame(frame);
   }
-  return d+` L400,440 L0,440 Z`;
+  if(cs.rafId) cancelAnimationFrame(cs.rafId);
+  cs.rafId=requestAnimationFrame(frame);
 }
 
-function updateWaves(y){
-  document.getElementById('wpath1').setAttribute('d',buildWave(y,7,42,0));
-  document.getElementById('wpath2').setAttribute('d',buildWave(y,5,30,2));
-  document.getElementById('shimmer').setAttribute('cy',y-3);
-}
-
-function render(n,anim){
-  const frac=n/GOAL;
-  const fillH=frac*BOT_H;
-  const yTop=BOT_BOT-fillH;
-  const rect=document.getElementById('waterRect');
-  if(!anim){
-    rect.style.transition='none';
-    requestAnimationFrame(()=>{
-      rect.setAttribute('y',yTop);
-      rect.setAttribute('height',fillH+30);
-      updateWaves(yTop);
-      requestAnimationFrame(()=>rect.style.transition='');
-    });
+function setWaterTarget(uid, fraction){
+  const y = BODY_TOP + (1-fraction)*BODY_H;
+  if(!canvasStates[uid]){
+    canvasStates[uid]={targetY:y, currentY:fraction===0?VH:y, phase1:0, phase2:0, tiltPhase:0, rafId:null};
   } else {
-    rect.setAttribute('y',yTop);
-    rect.setAttribute('height',fillH+30);
-    // delay wave update to match water settling
-    setTimeout(()=>updateWaves(yTop),100);
+    canvasStates[uid].targetY=y;
   }
-  document.getElementById('numEl').textContent=n;
-  document.getElementById('mlEl').textContent=`${n*ML} ML / ${TOTAL} ML`;
-  document.getElementById('progFill').style.width=`${frac*100}%`;
-  document.getElementById('btnUndo').disabled=n===0;
-  const svg=document.getElementById('bottleSvg');
-  const bar=document.getElementById('completeBar');
-  if(n>=GOAL){svg.classList.add('glowing');bar.classList.add('show');}
-  else{svg.classList.remove('glowing');bar.classList.remove('show');}
 }
 
+/* ── tilt via DeviceMotion ───────────── */
+function initTilt(){
+  if(window.DeviceMotionEvent){
+    // iOS 13+ needs permission
+    if(typeof DeviceMotionEvent.requestPermission==='function'){
+      // request on first user gesture
+      document.addEventListener('click',function ask(){
+        DeviceMotionEvent.requestPermission().then(r=>{
+          if(r==='granted') listenMotion();
+        }).catch(()=>{});
+        document.removeEventListener('click',ask);
+      },{once:true});
+    } else {
+      listenMotion();
+    }
+  }
+  // also mouse/touch tilt for desktop preview
+  document.addEventListener('mousemove',e=>{
+    const cx=window.innerWidth/2;
+    tiltX=Math.max(-1,Math.min(1,(e.clientX-cx)/(cx)));
+  });
+}
+
+function listenMotion(){
+  window.addEventListener('devicemotion',e=>{
+    const acc=e.accelerationIncludingGravity;
+    if(acc && acc.x!=null){
+      // x axis: positive=right tilt, negative=left
+      tiltX=Math.max(-1,Math.min(1, acc.x/6));
+    }
+  });
+}
+
+/* ── storage ─────────────────────────── */
+function todayKey(id){const d=new Date();return `awa-b${id}-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;}
+function getMl(id){return parseInt(localStorage.getItem(todayKey(id))||'0');}
+function setMl(id,ml){localStorage.setItem(todayKey(id),Math.max(0,ml));}
+function getSaved(){return JSON.parse(localStorage.getItem('awa-bottles')||'[]');}
+function saveBts(){localStorage.setItem('awa-bottles',JSON.stringify(bottles));}
+
+let bottles=[], current=0, transitioning=false;
+
+/* ── render UI state ──────────────────── */
+function renderBottle(uid, ml, immediate){
+  const frac=Math.min(ml/GOAL_ML,1);
+  setWaterTarget(uid, frac);
+  if(immediate && canvasStates[uid]) canvasStates[uid].currentY=BODY_TOP+(1-frac)*BODY_H;
+
+  const lnum=document.getElementById(`lnum-${uid}`);
+  const mlrow=document.getElementById(`mlrow-${uid}`);
+  const prog=document.getElementById(`prog-${uid}`);
+  const undo=document.getElementById(`undo-${uid}`);
+  const svg=document.getElementById(`svg-${uid}`);
+  const addB=document.getElementById(`add-${uid}`);
+  const bar=document.getElementById('completeBar');
+
+  if(lnum) lnum.textContent=(ml/1000).toFixed(1);
+  if(mlrow) mlrow.textContent=`${ml} ML / ${GOAL_ML} ML`;
+  if(prog) prog.style.width=`${frac*100}%`;
+  if(undo) undo.disabled=ml===0;
+
+  if(ml>=GOAL_ML){
+    svg&&svg.classList.add('glowing');
+    bar.classList.add('show');
+    if(addB&&bottles.length<MAX_BOTTLES) addB.classList.add('visible');
+  } else {
+    svg&&svg.classList.remove('glowing');
+    bar.classList.remove('show');
+    addB&&addB.classList.remove('visible');
+  }
+}
+
+/* ── card HTML ───────────────────────── */
+function makeCardHTML(b,idx){
+  const uid=b.id;
+  return `<div class="bottle-card" id="card-${uid}" data-idx="${idx}">
+    <div class="bottle-wrap">${makeBottleSVG(uid)}</div>
+    <div class="counter">
+      <div style="display:flex;align-items:baseline;justify-content:center;gap:6px;">
+        <span class="lnum" id="lnum-${uid}">0.0</span>
+        <span class="lunit">L</span>
+      </div>
+      <div class="mlrow" id="mlrow-${uid}">0 ML / ${GOAL_ML} ML</div>
+      <div class="blabel">${b.sizeMl} ML POR BOTELLA</div>
+    </div>
+    <div class="ptrack"><div class="pfill" id="prog-${uid}"></div></div>
+    <div class="btn-row">
+      <button class="btn-ghost" id="undo-${uid}" disabled>- ${ML_PER_DRINK} ML</button>
+      <button class="btn-add" id="add-${uid}">+ Botella</button>
+    </div>
+  </div>`;
+}
+
+/* ── dots ────────────────────────────── */
+function renderDots(){
+  document.getElementById('dots').innerHTML=
+    bottles.map((_,i)=>`<div class="dot${i===current?' active':''}"></div>`).join('');
+}
+
+/* ── drink / undo ────────────────────── */
+function drinkBottle(idx){
+  const b=bottles[idx]; if(!b)return;
+  let ml=getMl(b.id);
+  if(ml>=GOAL_ML){showToast('Meta ya completada');return;}
+  ml+=ML_PER_DRINK; setMl(b.id,ml); renderBottle(b.id,ml,false);
+  if(ml>=GOAL_ML) setTimeout(()=>showToast('Hidratacion completa'),600);
+}
+function undoBottle(idx){
+  const b=bottles[idx]; if(!b)return;
+  let ml=getMl(b.id); if(ml<=0)return;
+  ml=Math.max(0,ml-ML_PER_DRINK); setMl(b.id,ml); renderBottle(b.id,ml,false);
+  showToast(`-${ML_PER_DRINK} ML`);
+}
+
+/* ── add bottle ──────────────────────── */
+function openModal(){document.getElementById('sizeInput').value='';document.getElementById('modalBg').classList.add('show');setTimeout(()=>document.getElementById('sizeInput').focus(),350);}
+function closeModal(){document.getElementById('modalBg').classList.remove('show');}
+function confirmAdd(){
+  const val=parseInt(document.getElementById('sizeInput').value);
+  if(!val||val<50||val>5000){showToast('Tamaño inválido');return;}
+  closeModal(); addBottle(val);
+}
+function addBottle(sizeMl){
+  if(transitioning||bottles.length>=MAX_BOTTLES)return;
+  transitioning=true;
+  const nb={id:Date.now(),sizeMl};
+  bottles.push(nb); saveBts();
+  const stage=document.getElementById('stage');
+  const oldCard=stage.querySelector('.bottle-card');
+  const tmp=document.createElement('div');
+  tmp.innerHTML=makeCardHTML(nb,bottles.length-1);
+  const newCard=tmp.firstChild;
+  newCard.style.cssText='position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px;transform:translateX(115%);opacity:0;';
+  stage.appendChild(newCard);
+  wireCard(nb,bottles.length-1);
+  setWaterTarget(nb.id,0);
+  if(!canvasStates[nb.id]) canvasStates[nb.id]={targetY:BODY_BOT,currentY:VH,phase1:Math.random()*Math.PI*2,phase2:Math.random()*Math.PI*2,tiltPhase:0,rafId:null};
+  startWaterRaf(nb.id);
+  renderBottle(nb.id,0,true);
+  requestAnimationFrame(()=>{
+    if(oldCard){oldCard.classList.add('slide-out-left');oldCard.addEventListener('animationend',()=>oldCard.remove(),{once:true});}
+    newCard.style.transform='';newCard.style.opacity='';
+    newCard.classList.add('slide-in-right');
+    newCard.addEventListener('animationend',()=>{
+      newCard.classList.remove('slide-in-right');
+      current=bottles.length-1; renderDots(); transitioning=false;
+    },{once:true});
+  });
+}
+function wireCard(b,idx){
+  const u=document.getElementById(`undo-${b.id}`);
+  const a=document.getElementById(`add-${b.id}`);
+  if(u)u.addEventListener('click',()=>undoBottle(idx));
+  if(a)a.addEventListener('click',openModal);
+}
+
+/* ── init ────────────────────────────── */
+function initStage(){
+  const saved=getSaved();
+  bottles=saved.length?saved:[{id:1,sizeMl:500}];
+  if(!saved.length) saveBts();
+  const stage=document.getElementById('stage');
+  stage.innerHTML='';
+  const b=bottles[current];
+  stage.innerHTML=makeCardHTML(b,current);
+  wireCard(b,current);
+  const ml=getMl(b.id);
+  const frac=Math.min(ml/GOAL_ML,1);
+  canvasStates[b.id]={
+    targetY:BODY_TOP+(1-frac)*BODY_H,
+    currentY:frac===0?VH:BODY_TOP+(1-frac)*BODY_H,
+    phase1:0,phase2:0,tiltPhase:0,rafId:null
+  };
+  startWaterRaf(b.id);
+  renderBottle(b.id,ml,true);
+  renderDots();
+}
+
+/* ── toast ───────────────────────────── */
 let tt;
 function showToast(msg){
   const el=document.getElementById('toast');
@@ -367,31 +511,31 @@ function showToast(msg){
   clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),2400);
 }
 
-function drink(){
-  let n=getCount();
-  if(n>=GOAL){showToast('Meta ya completada');return}
-  n++;setCount(n);render(n,true);
-  if(n===GOAL)setTimeout(()=>showToast('Hidratacion completa'),600);
+/* ── URL ─────────────────────────────── */
+function handleURL(){
+  const p=new URLSearchParams(location.search);
+  if(p.get('action')==='drink'){
+    history.replaceState({},'',location.pathname);
+    const idx=Math.min((parseInt(p.get('bottle')||'1')-1),bottles.length-1);
+    setTimeout(()=>drinkBottle(idx),400);
+  }
 }
 
-function undo(){
-  let n=getCount();if(n<=0)return;
-  n--;setCount(n);render(n,true);showToast('Vaso removido');
-}
-
-document.getElementById('btnUndo').addEventListener('click',undo);
-
-const p=new URLSearchParams(location.search);
-if(p.get('action')==='drink'){history.replaceState({},'',location.pathname);setTimeout(drink,400);}
-
-render(getCount(),false);
-
+/* ── midnight reset ──────────────────── */
 function schedReset(){
   const now=new Date();
   const ms=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1)-now;
-  setTimeout(()=>{render(0,true);schedReset();},ms);
+  setTimeout(()=>{bottles.forEach(b=>{setMl(b.id,0);renderBottle(b.id,0,false);});schedReset();},ms);
 }
+
+document.getElementById('btnConfirm').addEventListener('click',confirmAdd);
+document.getElementById('sizeInput').addEventListener('keydown',e=>{if(e.key==='Enter')confirmAdd();});
+document.getElementById('modalBg').addEventListener('click',e=>{if(e.target===document.getElementById('modalBg'))closeModal();});
+
+initStage();
+handleURL();
 schedReset();
+initTilt();
 </script>
 </body>
 </html>
