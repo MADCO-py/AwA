@@ -10,7 +10,129 @@
 html,body{width:100%;height:100%;background:var(--bg);color:#fff;
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif;
   overflow:hidden;touch-action:none;}
-.stage{width:100%;height:100dvh;position:relative;overflow:hidden;}
+.app-scroll{
+  width:100%;height:100dvh;
+  overflow-y:scroll;
+  scroll-snap-type:y mandatory;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.app-scroll::-webkit-scrollbar{display:none;}
+.screen{
+  width:100%;height:100dvh;
+  scroll-snap-align:start;
+  position:relative;
+  flex-shrink:0;
+}
+.stage{width:100%;height:100%;position:relative;overflow:hidden;}
+
+/* Scroll hint arrow */
+.scroll-hint{
+  position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  opacity:0.35;animation:bob 2s ease-in-out infinite;pointer-events:none;z-index:10;
+}
+@keyframes bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(5px)}}
+.scroll-hint svg{width:20px;height:20px;}
+
+/* ── STATS SCREEN ── */
+.stats-screen{
+  background:var(--bg);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-start;
+  padding:64px 20px 48px;
+  gap:0;
+  overflow-y:auto;
+}
+
+.stats-title{
+  font-size:13px;font-weight:600;letter-spacing:.18em;
+  color:rgba(255,255,255,.35);text-transform:uppercase;
+  margin-bottom:36px;
+}
+
+/* Week rings grid */
+.week-grid{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:6px;
+  width:100%;max-width:420px;
+}
+.day-cell{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+}
+.day-ring{
+  position:relative;width:100%;aspect-ratio:1;
+}
+.day-ring svg{width:100%;height:100%;transform:rotate(-90deg);}
+.day-ring .ring-bg{stroke:rgba(255,255,255,0.07);}
+.day-ring .ring-fill{
+  stroke-linecap:round;
+  transition:stroke-dashoffset 1s cubic-bezier(0.34,1,0.64,1);
+}
+.day-ring .ring-fill.done{stroke:#30d158;}
+.day-ring .ring-fill.partial{stroke:#0a84ff;}
+.day-ring .ring-fill.empty{stroke:rgba(255,255,255,0.07);}
+.day-ring .ring-label{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:clamp(8px,2.4vw,11px);font-weight:700;color:rgba(255,255,255,.75);
+  text-align:center;line-height:1.1;
+}
+.day-ring.today .ring-label{color:#fff;}
+.day-name{
+  font-size:clamp(8px,2vw,11px);color:rgba(255,255,255,.3);
+  letter-spacing:.06em;font-weight:500;
+}
+.day-cell.today .day-name{color:rgba(255,255,255,.75);}
+
+/* Streak card */
+.streak-card{
+  margin-top:36px;
+  width:100%;max-width:380px;
+  background:rgba(255,255,255,0.05);
+  border:.5px solid rgba(255,255,255,0.09);
+  border-radius:20px;
+  padding:22px 24px;
+  display:flex;align-items:center;gap:18px;
+}
+.streak-icon{font-size:36px;line-height:1;}
+.streak-info{}
+.streak-num{font-size:36px;font-weight:700;line-height:1;color:#fff;letter-spacing:-.03em;}
+.streak-label{font-size:12px;color:rgba(255,255,255,.4);margin-top:3px;letter-spacing:.06em;}
+
+/* Best week card */
+.stats-cards{
+  margin-top:14px;
+  width:100%;max-width:420px;
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.stat-card{
+  background:rgba(255,255,255,0.04);
+  border:.5px solid rgba(255,255,255,0.07);
+  border-radius:16px;
+  padding:16px 18px;
+  display:flex;flex-direction:column;gap:6px;
+}
+.stat-card.wide{grid-column:1/-1;}
+.stat-label{font-size:10px;color:rgba(255,255,255,.32);letter-spacing:.1em;font-weight:600;text-transform:uppercase;}
+.stat-val{font-size:24px;font-weight:700;color:#fff;letter-spacing:-.03em;line-height:1;}
+.stat-sub{font-size:11px;color:rgba(255,255,255,.35);}
+.peak-list{display:flex;flex-direction:column;gap:10px;margin-top:10px;}
+.peak-empty{font-size:13px;color:rgba(255,255,255,.25);padding:4px 0;}
+.peak-row{display:flex;flex-direction:column;gap:5px;}
+.peak-row-top{display:flex;align-items:center;justify-content:space-between;}
+.peak-hour{font-size:15px;font-weight:600;color:#fff;letter-spacing:-.01em;}
+.peak-pct{font-size:12px;color:rgba(255,255,255,.45);font-weight:500;}
+.peak-bar-track{height:4px;background:rgba(255,255,255,0.07);border-radius:4px;overflow:hidden;}
+.peak-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#0a84ff,#30d158);
+  transition:width 0.8s cubic-bezier(0.34,1,0.64,1);}
+
+/* Scroll hint up on stats screen */
+.scroll-up{
+  position:absolute;top:20px;left:50%;transform:translateX(-50%);
+  opacity:0.3;pointer-events:none;
+}
 .bottle-card{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 24px;}
 
 .slide-out-left{animation:soleft .6s cubic-bezier(.4,0,.2,1) forwards;}
@@ -91,7 +213,59 @@ html,body{width:100%;height:100%;background:var(--bg);color:#fff;
 </style>
 </head>
 <body>
-<div class="stage" id="stage"></div>
+<div class="app-scroll" id="appScroll">
+  <!-- Screen 1: Bottle -->
+  <div class="screen" id="screen-bottle">
+    <div class="stage" id="stage"></div>
+    <div class="scroll-hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </div>
+  </div>
+  <!-- Screen 2: Stats -->
+  <div class="screen stats-screen" id="screen-stats">
+    <svg class="scroll-up" viewBox="0 0 24 24" width="20" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round">
+      <polyline points="6 15 12 9 18 15"/>
+    </svg>
+    <div class="stats-title">Esta semana</div>
+    <div class="week-grid" id="weekGrid"></div>
+    <div class="streak-card">
+      <div class="streak-icon">
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="#0a84ff" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C12 2 5 10.5 5 15a7 7 0 0 0 14 0C19 10.5 12 2 12 2z"/>
+        </svg>
+      </div>
+      <div class="streak-info">
+        <div class="streak-num" id="streakNum">0</div>
+        <div class="streak-label">DÍAS CONSECUTIVOS</div>
+      </div>
+    </div>
+    <div class="stats-cards">
+      <div class="stat-card">
+        <div class="stat-label">Promedio 7 días</div>
+        <div class="stat-val" id="avgWeek">—</div>
+        <div class="stat-sub">litros / día</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total histórico</div>
+        <div class="stat-val" id="totalHist">—</div>
+        <div class="stat-sub">litros acumulados</div>
+      </div>
+      <div class="stat-card wide">
+        <div class="stat-label">Esta semana</div>
+        <div class="stat-val" id="weekPct">—</div>
+        <div class="stat-sub">días completados de 7</div>
+      </div>
+      <div class="stat-card wide" id="peakHoursCard">
+        <div class="stat-label">Horas pico</div>
+        <div class="peak-list" id="peakList">
+          <div class="peak-empty">Aún sin datos</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="dots" id="dots"></div>
 
 <div class="toast" id="toast"></div>
@@ -465,6 +639,14 @@ function triggerNumWave(uid){
 function todayKey(id){const d=new Date();return`awa-b${id}-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;}
 function getMl(id){return parseInt(localStorage.getItem(todayKey(id))||'0');}
 function setMl(id,ml){localStorage.setItem(todayKey(id),Math.max(0,ml));}
+function logDrinkTime(){
+  const now=new Date();
+  const h=now.getHours();
+  const key='awa-hours';
+  const hours=JSON.parse(localStorage.getItem(key)||'{}');
+  hours[h]=(hours[h]||0)+1;
+  localStorage.setItem(key,JSON.stringify(hours));
+}
 function getSaved(){return JSON.parse(localStorage.getItem('awa-bottles')||'[]');}
 function saveBts(){localStorage.setItem('awa-bottles',JSON.stringify(bottles));}
 let bottles=[], current=0, transitioning=false;
@@ -530,15 +712,17 @@ function renderUI(uid,ml){
 /* ════════════════════════════════════════
    DRINK / UNDO
 ════════════════════════════════════════ */
-function addMl(idx,amount){
+function addMl(idx,amount,wave=false){
   const b=bottles[idx]; if(!b)return;
   let ml=getMl(b.id);
   if(ml>=BOTTLE_GOAL){showToast('Botella completa');return;}
   ml=Math.min(BOTTLE_GOAL,ml+amount);
   setMl(b.id,ml); renderUI(b.id,ml);
   addWater(b.id,ml);
-  triggerNumWave(b.id);
+  logDrinkTime();
+  if(wave) triggerNumWave(b.id);
   if(ml>=BOTTLE_GOAL)setTimeout(()=>showToast('Meta completada'),600);
+  renderStats();
 }
 function removeMl(idx){
   const b=bottles[idx]; if(!b)return;
@@ -553,7 +737,7 @@ function removeMl(idx){
 ════════════════════════════════════════ */
 function wireCard(b,idx){
   document.getElementById('undo-'+b.id)?.addEventListener('click',()=>removeMl(idx));
-  document.getElementById('add50-'+b.id)?.addEventListener('click',()=>addMl(idx,ML_PER_DRINK));
+  document.getElementById('add50-'+b.id)?.addEventListener('click',()=>addMl(idx,ML_PER_DRINK,true));
 }
 
 function initStage(){
@@ -572,10 +756,20 @@ function initStage(){
 let tt;
 function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),2400);}
 
+function flashNFC(uid){
+  const svg=document.getElementById('svg-'+uid); if(!svg)return;
+  svg.classList.remove('nfc-glow');
+  void svg.offsetWidth; // reflow to restart animation
+  svg.classList.add('nfc-glow');
+  svg.addEventListener('animationend',()=>svg.classList.remove('nfc-glow'),{once:true});
+}
+
 function handleURL(){
   const p=new URLSearchParams(location.search);
   if(p.get('action')==='drink'){
     history.replaceState({},'',location.pathname);
+    const b=bottles[current];
+    if(b) flashNFC(b.id);
     setTimeout(()=>addMl(current,ML_PER_DRINK),400);
   }
 }
@@ -588,7 +782,165 @@ function schedReset(){
   },new Date(now.getFullYear(),now.getMonth(),now.getDate()+1)-now);
 }
 
+/* ════════════════════════════════════════
+   STATS
+════════════════════════════════════════ */
+const DAYS = ['L','M','X','J','V','S','D'];
+
+function getWeekKey(date, id){
+  // localStorage key for a given date and bottle id
+  return `awa-b${id}-${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+function getMondayOfWeek(){
+  const d=new Date();
+  const day=d.getDay(); // 0=Sun
+  const diff=day===0?-6:1-day;
+  const mon=new Date(d);
+  mon.setDate(d.getDate()+diff);
+  mon.setHours(0,0,0,0);
+  return mon;
+}
+
+function getDayMl(date){
+  // Sum across all bottles
+  const ml = bottles.reduce((sum,b)=>{
+    const k=`awa-b${b.id}-${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    return sum + parseInt(localStorage.getItem(k)||'0');
+  },0);
+  return ml;
+}
+
+function calcStreak(){
+  let streak=0;
+  const d=new Date(); d.setHours(0,0,0,0);
+  // Don't penalize for today not being done yet
+  for(let i=0;i<365;i++){
+    const check=new Date(d); check.setDate(d.getDate()-i);
+    const ml=getDayMl(check);
+    if(i===0 && ml===0) continue; // today not done yet — skip
+    if(ml>=BOTTLE_GOAL) streak++;
+    else if(i>0) break;
+  }
+  return streak;
+}
+
+function calcBestWeek(){
+  // Scan last 12 weeks
+  let best=0;
+  for(let w=0;w<12;w++){
+    const mon=getMondayOfWeek();
+    mon.setDate(mon.getDate()-w*7);
+    let total=0;
+    for(let d=0;d<7;d++){
+      const day=new Date(mon); day.setDate(mon.getDate()+d);
+      total+=getDayMl(day);
+    }
+    if(total>best) best=total;
+  }
+  return best;
+}
+
+function renderStats(){
+  const mon=getMondayOfWeek();
+  const today=new Date(); today.setHours(0,0,0,0);
+  const grid=document.getElementById('weekGrid'); if(!grid)return;
+  grid.innerHTML='';
+
+  for(let d=0;d<7;d++){
+    const day=new Date(mon); day.setDate(mon.getDate()+d);
+    const ml=getDayMl(day);
+    const pct=Math.min(ml/BOTTLE_GOAL,1);
+    const isToday=day.getTime()===today.getTime();
+    const isFuture=day>today;
+
+    // SVG ring
+    const R=16, CIRC=2*Math.PI*R;
+    const offset=CIRC*(1-pct);
+    const colorClass=pct>=1?'done':pct>0?'partial':'empty';
+
+    const cell=document.createElement('div');
+    cell.className='day-cell'+(isToday?' today':'');
+    cell.innerHTML=`
+      <div class="day-ring${isToday?' today':''}">
+        <svg viewBox="0 0 40 40">
+          <circle class="ring-bg" cx="20" cy="20" r="${R}" fill="none" stroke-width="4"/>
+          <circle class="ring-fill ${colorClass}" cx="20" cy="20" r="${R}" fill="none" stroke-width="4"
+            stroke-dasharray="${CIRC}" stroke-dashoffset="${isFuture?CIRC:offset}"/>
+        </svg>
+        <div class="ring-label">${isFuture?'':ml>=1000?(ml/1000).toFixed(1)+'L':ml>0?ml+'':''}</div>
+      </div>
+      <div class="day-name">${DAYS[d]}</div>`;
+    grid.appendChild(cell);
+  }
+
+  document.getElementById('streakNum').textContent=calcStreak();
+
+  // Avg last 7 days
+  let avg7=0;
+  for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);avg7+=getDayMl(d);}
+  const avgEl=document.getElementById('avgWeek');
+  if(avgEl) avgEl.textContent=(avg7/7/1000).toFixed(2);
+
+  // Total historic (last 365 days)
+  let total=0;
+  for(let i=0;i<365;i++){const d=new Date();d.setDate(d.getDate()-i);total+=getDayMl(d);}
+  const totEl=document.getElementById('totalHist');
+  if(totEl) totEl.textContent=(total/1000).toFixed(1);
+
+  // Days completed this week
+  let doneDays=0;
+  for(let d=0;d<7;d++){const day=new Date(mon);day.setDate(mon.getDate()+d);if(getDayMl(day)>=BOTTLE_GOAL)doneDays++;}
+  const wkEl=document.getElementById('weekPct');
+  if(wkEl) wkEl.textContent=`${doneDays} / 7`;
+
+  // Peak hours — top 3
+  const peakList=document.getElementById('peakList');
+  if(peakList){
+    const hours=JSON.parse(localStorage.getItem('awa-hours')||'{}');
+    const entries=Object.entries(hours).map(([h,c])=>({h:parseInt(h),c}));
+    entries.sort((a,b)=>b.c-a.c);
+    const top3=entries.slice(0,3);
+    if(top3.length===0){
+      peakList.innerHTML='<div class="peak-empty">Aún sin datos</div>';
+    } else {
+      const maxC=top3[0].c;
+      function fmt(h){
+        const ampm=h<12?'AM':'PM';
+        const h12=h%12||12;
+        return `${h12}:00 ${ampm}`;
+      }
+      peakList.innerHTML=top3.map((e,i)=>{
+        const pct=Math.round((e.c/maxC)*100);
+        const rank=['#1','#2','#3'][i];
+        return `<div class="peak-row">
+          <div class="peak-row-top">
+            <span class="peak-hour">${rank} — ${fmt(e.h)}</span>
+            <span class="peak-pct">${pct}%</span>
+          </div>
+          <div class="peak-bar-track">
+            <div class="peak-bar-fill" style="width:0%" data-pct="${pct}"></div>
+          </div>
+        </div>`;
+      }).join('');
+      // Animate bars in
+      requestAnimationFrame(()=>{
+        peakList.querySelectorAll('.peak-bar-fill').forEach(el=>{
+          el.style.width=el.dataset.pct+'%';
+        });
+      });
+    }
+  }
+}
+
+// Re-render stats when scrolling to it
+document.getElementById('appScroll')?.addEventListener('scroll',()=>{
+  const scroll=document.getElementById('appScroll');
+  if(scroll.scrollTop > window.innerHeight*0.4) renderStats();
+},{passive:true});
+
 initStage();handleURL();schedReset();initTilt();
+setTimeout(renderStats,500);
 </script>
 </body>
 </html>
