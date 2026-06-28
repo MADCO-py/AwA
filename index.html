@@ -183,18 +183,15 @@ function stepSim(uid){
     }
   }
 
-  // Tilt: gx tilts surface (right tilt = water goes right = left side rises)
-  // gy handles upside-down (when gy<0 bottle is flipped)
-  const tiltAmp = gx * 28;  // max tilt offset in sim px
+  // gx = left/right tilt (-1=left, +1=right)
+  // When tilted right: right side of bottle goes down → water surface
+  // tilts: right nodes go DOWN, left nodes go UP
+  const tiltAmp = gx * 35;
   for(let i=0;i<K;i++){
-    const t = i/(K-1);  // 0=left, 1=right
+    const t = i/(K-1);        // 0=left edge, 1=right edge
     const targetOffset = tiltAmp * (t - 0.5);
-    N[i].vy += (targetOffset - (N[i].y - sim.surfaceY)) * 0.015;
-  }
-  // Upside-down: when phone flipped, water rushes to cap side
-  if(gy < -0.3){
-    // Gravity pulling toward top — water "falls up"
-    sim.surfaceY += (CEIL + 10 - sim.surfaceY) * 0.04;
+    // Pull node toward its tilted target position
+    N[i].vy += (targetOffset - (N[i].y - sim.surfaceY)) * 0.018;
   }
 
   // Update bubbles
@@ -358,8 +355,10 @@ function startRaf(uid){
 function initTilt(){
   function onMotion(e){
     const a=e.accelerationIncludingGravity; if(!a||a.x==null)return;
-    gx=Math.max(-2,Math.min(2,-a.x/9.8));
-    gy=Math.max(-2,Math.min(2, a.y/9.8));
+    // ax: negative=tilt left, positive=tilt right (in portrait mode)
+    // Normalize to -1..+1 where +1 = fully right
+    gx = Math.max(-1, Math.min(1, a.x / 6));
+    gy = Math.max(-1, Math.min(1, a.y / 9.8));
   }
   if(window.DeviceMotionEvent){
     if(typeof DeviceMotionEvent.requestPermission==='function'){
@@ -370,7 +369,8 @@ function initTilt(){
     } else { window.addEventListener('devicemotion',onMotion); }
   }
   window.addEventListener('mousemove',e=>{
-    gx=-((e.clientX-window.innerWidth/2)/(window.innerWidth/2))*1.5;
+    // Mouse: moving right = tilt right
+    gx = ((e.clientX-window.innerWidth/2)/(window.innerWidth/2));
   });
 }
 
