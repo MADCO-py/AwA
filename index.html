@@ -82,16 +82,7 @@ html,body{width:100%;height:100%;background:var(--bg);color:#fff;
 }
 .btn-add.visible{opacity:1;pointer-events:auto;transform:translateY(0) scale(1);}
 .btn-add:active{transform:scale(.94);}
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .3s;}
-.modal-bg.show{opacity:1;pointer-events:auto;}
-.modal{background:#0f1829;border:.5px solid rgba(255,255,255,.1);border-radius:20px;padding:32px 28px;width:min(320px,88vw);text-align:center;transform:scale(.92) translateY(16px);transition:transform .35s cubic-bezier(.34,1.2,.64,1);}
-.modal-bg.show .modal{transform:scale(1) translateY(0);}
-.modal h2{font-size:18px;font-weight:600;margin-bottom:8px;}
-.modal p{font-size:13px;color:var(--text-dim);margin-bottom:24px;line-height:1.5;}
-.modal input{width:100%;background:rgba(255,255,255,.05);border:.5px solid rgba(255,255,255,.12);color:#fff;font-family:inherit;font-size:20px;text-align:center;padding:14px;border-radius:12px;outline:none;margin-bottom:20px;transition:border-color .2s;}
-.modal input:focus{border-color:rgba(59,158,255,.5);}
-.btn-confirm{width:100%;background:var(--blue);color:#fff;border:none;font-family:inherit;font-size:15px;font-weight:600;padding:14px;border-radius:12px;cursor:pointer;transition:opacity .2s,transform .12s;}
-.btn-confirm:hover{opacity:.88;}.btn-confirm:active{transform:scale(.98);}
+
 .toast{position:fixed;bottom:46px;left:50%;transform:translateX(-50%) translateY(14px);background:rgba(13,20,36,.9);border:.5px solid rgba(59,158,255,.22);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:rgba(255,255,255,.85);font-size:13px;letter-spacing:.06em;padding:10px 24px;border-radius:100px;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;white-space:nowrap;z-index:50;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .complete-bar{position:fixed;top:0;left:0;right:0;text-align:center;padding:14px;font-size:10px;letter-spacing:.2em;color:var(--blue);opacity:0;transition:opacity .8s;pointer-events:none;z-index:30;}
@@ -101,310 +92,283 @@ html,body{width:100%;height:100%;background:var(--bg);color:#fff;
 <body>
 <div class="stage" id="stage"></div>
 <div class="dots" id="dots"></div>
-<div class="modal-bg" id="modalBg">
-  <div class="modal">
-    <h2>Nueva botella</h2>
-    <p>Tamaño en mililitros</p>
-    <input type="number" id="sizeInput" placeholder="1000" min="100" max="3000" inputmode="numeric"/>
-    <button class="btn-confirm" id="btnConfirm">Agregar</button>
-  </div>
-</div>
+
 <div class="toast" id="toast"></div>
 <div class="complete-bar" id="completeBar">BOTELLA COMPLETA</div>
 
 <script>
-/* ═══════════════════════════════════
+/* ═══════════════════════════════════════════
    CONFIG
-═══════════════════════════════════ */
-const ML_PER_DRINK   = 50;
-const BOTTLE_GOAL    = 1000;
-const MAX_BOTTLES    = 3;
-const ML_PER_PARTICLE = 10;
+═══════════════════════════════════════════ */
+const ML_PER_DRINK = 50;
+const BOTTLE_GOAL  = 1000;
+const MAX_BOTTLES  = 3;
 
-/* ═══════════════════════════════════
-   BOTTLE SHAPE in canvas coords
-   Canvas is 200×520 px (same as SVG viewBox)
-   We define the inner clip path here
-   so particles are masked inside it.
-═══════════════════════════════════ */
-const CW = 200, CH = 520;  // canvas logical size
+/* ═══════════════════════════════════════════
+   BOTTLE GEOMETRY  (SVG viewBox 200×520)
+═══════════════════════════════════════════ */
+const SIM_W = 200, SIM_H = 520;
+const FLOOR  = 455;  // bottom of water area
+const CEIL   = 85;   // top of water area (below cap)
 
-// Build the bottle inner path as a Path2D
-// This matches the SVG body path exactly
-function makeBottlePath(){
-  const p = new Path2D();
-  p.moveTo(88,0);
-  p.lineTo(88,10);
-  p.bezierCurveTo(88,10, 82,12, 79,16);
-  p.lineTo(75,24);
-  p.lineTo(75,34);
-  p.bezierCurveTo(58,40, 38,62, 34,92);
-  p.lineTo(30,126);
-  p.bezierCurveTo(28,138, 27,150, 27,162);
-  p.lineTo(27,400);
-  p.bezierCurveTo(27,438, 60,468, 100,468);
-  p.bezierCurveTo(140,468, 173,438, 173,400);
-  p.lineTo(173,162);
-  p.bezierCurveTo(173,150, 172,138, 170,126);
-  p.lineTo(166,92);
-  p.bezierCurveTo(162,62, 142,40, 125,34);
-  p.lineTo(125,24);
-  p.lineTo(121,16);
-  p.bezierCurveTo(118,12, 112,10, 112,10);
-  p.lineTo(112,0);
-  p.closePath();
-  return p;
+// Returns inner wall x at given y
+function wallX(y){
+  if(y < 90)  return {l:30, r:170};
+  if(y < 130) return {l:28, r:172};
+  if(y < 400) return {l:27, r:173};
+  const t=(y-400)/55; return {l:27+t*14, r:173-t*14};
 }
 
-// Wall x range at given y for physics (sampled from bottle shape)
-function wallAt(y){
-  if(y < 15)  return {l:85,  r:115};
-  if(y < 30)  return {l:77,  r:123};
-  if(y < 60)  return {l:68,  r:132};
-  if(y < 95)  return {l:40,  r:160};
-  if(y < 130) return {l:30,  r:170};
-  if(y < 400) return {l:28,  r:172};
-  if(y < 460) {
-    const t=(y-400)/60;
-    return {l:28+t*14, r:172-t*14};
-  }
-  return {l:42, r:158};
-}
-const FLOOR = 458;
-const CEIL  = 18;
+const BOTTLE_AREA_H = FLOOR - CEIL; // 370px
 
-/* ═══════════════════════════════════
-   PHYSICS
-═══════════════════════════════════ */
-let gx=0, gy=1;  // gravity vector (screen space)
-
-const sims = {}; // uid -> {particles, rafId}
+/* ═══════════════════════════════════════════
+   WATER SIMULATION
+   Simple but effective: track water LEVEL,
+   simulate surface waves with spring physics,
+   add bubble particles that float up.
+   This looks WAY better than broken SPH.
+═══════════════════════════════════════════ */
+const sims = {};
 
 function makeSim(uid, currentMl){
   if(sims[uid]?.rafId) cancelAnimationFrame(sims[uid].rafId);
-  const n = Math.round(currentMl / ML_PER_PARTICLE);
-  const particles = [];
-  for(let i=0;i<n;i++){
-    const y = FLOOR - 8 - Math.random()*Math.min(n*4, 300);
-    const w = wallAt(y);
-    const cx = (w.l+w.r)/2;
-    particles.push({
-      x: cx+(Math.random()-.5)*(w.r-w.l)*0.6,
-      y,
-      vx:(Math.random()-.5)*.5,
-      vy: Math.random()*.3,
-      r: 7+Math.random()*3
-    });
-  }
-  sims[uid]={particles, rafId:null};
+  const fillRatio = Math.min(currentMl / BOTTLE_GOAL, 1);
+  // Water level Y in sim coords (FLOOR = full, CEIL = empty)
+  const targetY = FLOOR - fillRatio * BOTTLE_AREA_H;
+  // Wave nodes along the surface
+  const NODES = 24;
+  const nodes = [];
+  for(let i=0;i<=NODES;i++) nodes.push({y:targetY, vy:0});
+  // Bubbles
+  const bubbles = [];
+  sims[uid] = {
+    ml: currentMl,
+    targetY,
+    surfaceY: targetY,  // current mean surface
+    nodes,
+    bubbles,
+    splashTimer: 0,
+    rafId: null
+  };
 }
 
-function spawnDrops(uid, count){
-  const sim=sims[uid]; if(!sim)return;
-  for(let i=0;i<count;i++){
-    setTimeout(()=>{
-      sim.particles.push({
-        x: 90+(Math.random()-0.5)*20,
-        y: CEIL+5+Math.random()*8,
-        vx:(Math.random()-.5)*3,
-        vy: 1+Math.random()*2,
-        r: 7+Math.random()*3
-      });
-    }, i*55);
+function spawnDrops(uid, mlAdded){
+  const sim = sims[uid]; if(!sim) return;
+  // Update target level
+  sim.ml = Math.min(sim.ml + mlAdded, BOTTLE_GOAL);
+  const fillRatio = sim.ml / BOTTLE_GOAL;
+  sim.targetY = FLOOR - fillRatio * BOTTLE_AREA_H;
+  // Splash: disturb surface nodes
+  const center = Math.floor(sim.nodes.length / 2);
+  for(let i=0;i<sim.nodes.length;i++){
+    const dist = Math.abs(i - center);
+    sim.nodes[i].vy -= (8 - dist*0.5) * Math.max(0, 8-dist);
+  }
+  // Spawn bubbles
+  for(let b=0;b<Math.min(8, Math.round(mlAdded/10));b++){
+    const w = wallX(FLOOR-20);
+    sim.bubbles.push({
+      x: w.l+10 + Math.random()*(w.r-w.l-20),
+      y: FLOOR - 5 - Math.random()*30,
+      vy: -(0.4 + Math.random()*0.8),
+      r:  1.5 + Math.random()*2.5,
+      life: 1.0
+    });
   }
 }
 
 function stepSim(uid){
-  const sim=sims[uid]; if(!sim)return;
-  const P=sim.particles;
-  const N=P.length;
-  const GRAV=0.5, DAMP=0.68, FRIC=0.86, REP=0.4;
+  const sim = sims[uid]; if(!sim) return;
+  const N = sim.nodes;
+  const K = N.length;
 
-  for(let i=0;i<N;i++){
-    const p=P[i];
-    p.vx += gx*GRAV;
-    p.vy += gy*GRAV;
-    p.x  += p.vx;
-    p.y  += p.vy;
+  // Move surface toward target (fill/drain)
+  sim.surfaceY += (sim.targetY - sim.surfaceY) * 0.035;
 
-    // floor
-    if(p.y+p.r>FLOOR){ p.y=FLOOR-p.r; p.vy*=-DAMP; p.vx*=FRIC; }
-    // ceiling
-    if(p.y-p.r<CEIL){ p.y=CEIL+p.r; p.vy*=-DAMP; }
-    // walls
-    const w=wallAt(p.y);
-    if(p.x-p.r<w.l){ p.x=w.l+p.r; p.vx*=-DAMP; }
-    if(p.x+p.r>w.r){ p.x=w.r-p.r; p.vx*=-DAMP; }
-    // speed cap
-    const s=Math.hypot(p.vx,p.vy);
-    if(s>14){p.vx=p.vx/s*14;p.vy=p.vy/s*14;}
+  // Spring wave simulation on surface nodes
+  const SPRING = 0.04, DAMP = 0.88, SPREAD = 0.22;
+  for(let i=0;i<K;i++){
+    const n = N[i];
+    // Spring toward mean surface
+    const force = SPRING * (sim.surfaceY - n.y);
+    n.vy = (n.vy + force) * DAMP;
+    n.y += n.vy;
+  }
+  // Spread waves between neighbours
+  for(let iter=0;iter<2;iter++){
+    for(let i=0;i<K;i++){
+      const left  = i>0   ? N[i-1].y : N[i].y;
+      const right = i<K-1 ? N[i+1].y : N[i].y;
+      N[i].vy += SPREAD * ((left + right)/2 - N[i].y);
+    }
   }
 
-  // repulsion between particles
-  for(let i=0;i<N;i++){
-    for(let j=i+1;j<N;j++){
-      const a=P[i],b=P[j];
-      const dx=b.x-a.x, dy=b.y-a.y;
-      const d=Math.hypot(dx,dy);
-      const min=a.r+b.r-1;
-      if(d<min&&d>0.01){
-        const ov=(min-d)/d*REP;
-        a.vx-=dx*ov; a.vy-=dy*ov;
-        b.vx+=dx*ov; b.vy+=dy*ov;
-      }
+  // Tilt effect from device motion
+  if(Math.abs(gx) > 0.05){
+    for(let i=0;i<K;i++){
+      const tiltOffset = gx * 18 * (i/(K-1) - 0.5); // left side rises/falls
+      N[i].vy += (tiltOffset - (N[i].y - sim.surfaceY)) * 0.008;
+    }
+  }
+
+  // Update bubbles
+  for(let i=sim.bubbles.length-1;i>=0;i--){
+    const b = sim.bubbles[i];
+    b.y  += b.vy;
+    b.vy -= 0.012; // buoyancy (constant upward)
+    b.vy *= 0.98;
+    b.x  += Math.sin(b.y*0.12)*0.4; // gentle sideways drift
+    b.life -= 0.008;
+    // Remove if above surface or expired
+    if(b.y < sim.surfaceY - 10 || b.life <= 0){
+      sim.bubbles.splice(i,1);
     }
   }
 }
 
-/* ═══════════════════════════════════
-   RENDER — canvas clips particles
-   to bottle shape using Path2D
-═══════════════════════════════════ */
-const bottlePath = makeBottlePath();
+/* ═══════════════════════════════════════════
+   GRAVITY (device motion)
+═══════════════════════════════════════════ */
+let gx=0, gy=1;
 
-/* Offscreen canvas for metaball blur+threshold trick */
-const offscreens = {};
-
-function getOffscreen(uid, w, h){
-  if(!offscreens[uid]||offscreens[uid].width!==w||offscreens[uid].height!==h){
-    const oc = document.createElement('canvas');
-    oc.width=w; oc.height=h;
-    offscreens[uid]=oc;
-  }
-  return offscreens[uid];
-}
-
+/* ═══════════════════════════════════════════
+   RENDERER
+═══════════════════════════════════════════ */
 function clipBottle(ctx){
   ctx.beginPath();
-  ctx.moveTo(88,0);
-  ctx.bezierCurveTo(88,10,82,12,79,16);
+  ctx.moveTo(88,0);ctx.bezierCurveTo(88,10,82,12,79,16);
   ctx.lineTo(75,24);ctx.lineTo(75,34);
-  ctx.bezierCurveTo(58,40,38,62,34,92);
-  ctx.lineTo(30,126);
-  ctx.bezierCurveTo(28,138,27,150,27,162);
-  ctx.lineTo(27,400);
+  ctx.bezierCurveTo(58,40,38,62,34,92);ctx.lineTo(30,126);
+  ctx.bezierCurveTo(28,138,27,150,27,162);ctx.lineTo(27,400);
   ctx.bezierCurveTo(27,438,60,468,100,468);
-  ctx.bezierCurveTo(140,468,173,438,173,400);
-  ctx.lineTo(173,162);
-  ctx.bezierCurveTo(173,150,172,138,170,126);
-  ctx.lineTo(166,92);
+  ctx.bezierCurveTo(140,468,173,438,173,400);ctx.lineTo(173,162);
+  ctx.bezierCurveTo(173,150,172,138,170,126);ctx.lineTo(166,92);
   ctx.bezierCurveTo(162,62,142,40,125,34);
   ctx.lineTo(125,24);ctx.lineTo(121,16);
   ctx.bezierCurveTo(118,12,112,10,112,10);
-  ctx.lineTo(112,0);
-  ctx.closePath();
+  ctx.lineTo(112,0);ctx.closePath();
 }
 
 function renderSim(uid){
-  const sim=sims[uid]; if(!sim)return;
-  const cvs=document.getElementById(`wc-${uid}`); if(!cvs)return;
-  const ctx=cvs.getContext('2d');
+  const sim = sims[uid]; if(!sim)return;
+  const cvs = document.getElementById(`wc-${uid}`); if(!cvs)return;
+  const ctx  = cvs.getContext('2d');
+  const dW   = cvs.offsetWidth, dH = cvs.offsetHeight;
+  if(!dW||!dH)return;
+  if(cvs.width!==dW||cvs.height!==dH){cvs.width=dW;cvs.height=dH;}
 
-  const displayW=cvs.offsetWidth||cvs.clientWidth||200;
-  const displayH=cvs.offsetHeight||cvs.clientHeight||520;
-  if(cvs.width!==displayW||cvs.height!==displayH){cvs.width=displayW;cvs.height=displayH;}
-  const sx=displayW/CW, sy=displayH/CH;
+  const sx=dW/SIM_W, sy=dH/SIM_H;
 
-  ctx.clearRect(0,0,displayW,displayH);
+  ctx.clearRect(0,0,dW,dH);
 
-  const P=sim.particles;
-
+  // Dark interior
   ctx.save();
   ctx.scale(sx,sy);
-  clipBottle(ctx);
-  ctx.clip();
-  ctx.fillStyle='#0a1422';
-  ctx.fillRect(0,0,CW,CH);
+  clipBottle(ctx);ctx.clip();
+  ctx.fillStyle='#07101c';
+  ctx.fillRect(0,0,SIM_W,SIM_H);
   ctx.restore();
 
-  if(P.length===0) return;
+  if(sim.ml <= 0) return;
 
-  /* ── METABALL PASS ──────────────────────────────
-     1. Draw soft blobs on offscreen with heavy blur
-     2. Composite with threshold using globalCompositeOperation
-     Result: blobs MERGE when close → liquid water look
-  ─────────────────────────────────────────────── */
-  const oc = getOffscreen(uid, displayW, displayH);
-  const octx = oc.getContext('2d');
-  octx.clearRect(0,0,displayW,displayH);
+  const N = sim.nodes, K = N.length;
 
-  // Draw each particle as a large soft radial gradient blob
-  for(const p of P){
-    const px=p.x*sx, py=p.y*sy, pr=p.r*sx*2.2;
-    const g=octx.createRadialGradient(px,py,0,px,py,pr);
-    // High alpha center, transparent edge — blur will blend them together
-    g.addColorStop(0,   'rgba(30,120,255,1)');
-    g.addColorStop(0.4, 'rgba(20,90,210,0.9)');
-    g.addColorStop(0.75,'rgba(10,60,160,0.4)');
-    g.addColorStop(1,   'rgba(5,30,100,0)');
-    octx.beginPath();
-    octx.arc(px,py,pr,0,Math.PI*2);
-    octx.fillStyle=g;
-    octx.fill();
-  }
-
-  // Apply strong blur — this is what creates the metaball merge effect
-  const blurAmt = Math.max(6, P[0].r*sx*0.9);
-  ctx.save();
-  ctx.filter=`blur(${blurAmt}px) contrast(18) brightness(1.1)`;
-  // Clip to bottle before compositing
-  ctx.scale(1,1);
-  clipBottle(ctx);ctx.clip();  // can't scale here, offscreen is already scaled
-  // Reset scale for direct pixel draw
-  ctx.setTransform(1,0,0,1,0,0);
-  clipBottle(ctx); // re-clip without scale (offscreen is already in display coords)
-  ctx.clip();
-  ctx.drawImage(oc,0,0);
-  ctx.filter='none';
-  ctx.restore();
-
-  /* ── COLOR PASS ─────────────────────────────────
-     After metaball merge, paint the merged shape
-     with beautiful water colors + specular highlights
-  ─────────────────────────────────────────────── */
   ctx.save();
   ctx.scale(sx,sy);
   clipBottle(ctx);ctx.clip();
 
-  // Water color overlay using source-atop
-  const bodyGrad=ctx.createLinearGradient(27,0,173,0);
-  bodyGrad.addColorStop(0,  'rgba(15,80,200,0.18)');
-  bodyGrad.addColorStop(0.4,'rgba(40,130,255,0.08)');
-  bodyGrad.addColorStop(1,  'rgba(10,50,160,0.18)');
-  ctx.fillStyle=bodyGrad;
-  ctx.fillRect(0,0,CW,CH);
-
-  // Specular highlights on particles (individual glints)
-  ctx.globalCompositeOperation='screen';
-  for(const p of P){
-    // Main specular
-    const sg=ctx.createRadialGradient(p.x-p.r*.3,p.y-p.r*.35,0,p.x-p.r*.2,p.y-p.r*.2,p.r*.55);
-    sg.addColorStop(0,'rgba(255,255,255,0.75)');
-    sg.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.beginPath();ctx.arc(p.x,p.y,p.r*.7,0,Math.PI*2);
-    ctx.fillStyle=sg;ctx.fill();
-    // Tiny bright glint
-    ctx.beginPath();ctx.arc(p.x-p.r*.28,p.y-p.r*.32,p.r*.15,0,Math.PI*2);
-    ctx.fillStyle='rgba(255,255,255,0.9)';ctx.fill();
+  /* ── Draw water body ── */
+  ctx.beginPath();
+  // Start bottom-left
+  ctx.moveTo(27, FLOOR);
+  // Bottom edge
+  ctx.lineTo(173, FLOOR);
+  // Up right wall
+  ctx.lineTo(173, N[K-1].y);
+  // Surface (right to left, wavy)
+  for(let i=K-1;i>=0;i--){
+    const x = 27 + (i/(K-1))*(173-27);
+    ctx.lineTo(x, N[i].y);
   }
-  ctx.globalCompositeOperation='source-over';
+  // Down left wall
+  ctx.lineTo(27, N[0].y);
+  ctx.closePath();
+
+  // Water gradient
+  const gy2 = ctx.createLinearGradient(0, sim.surfaceY, 0, FLOOR);
+  gy2.addColorStop(0,   '#5DCFFF');
+  gy2.addColorStop(0.15,'#2BAEE8');
+  gy2.addColorStop(0.5, '#1488CC');
+  gy2.addColorStop(1,   '#0A5099');
+  ctx.fillStyle = gy2;
+  ctx.fill();
+
+  /* ── Surface shimmer line ── */
+  ctx.beginPath();
+  for(let i=0;i<K;i++){
+    const x=27+(i/(K-1))*(173-27);
+    i===0 ? ctx.moveTo(x,N[i].y) : ctx.lineTo(x,N[i].y);
+  }
+  ctx.strokeStyle='rgba(200,240,255,0.55)';
+  ctx.lineWidth=1.5;
+  ctx.stroke();
+
+  /* ── Top highlight (WMW style) ── */
+  const hg=ctx.createLinearGradient(0,sim.surfaceY,0,sim.surfaceY+40);
+  hg.addColorStop(0,'rgba(160,230,255,0.35)');
+  hg.addColorStop(1,'rgba(160,230,255,0)');
+  ctx.fillStyle=hg;
+  ctx.beginPath();
+  ctx.moveTo(27,FLOOR);ctx.lineTo(173,FLOOR);ctx.lineTo(173,N[K-1].y);
+  for(let i=K-1;i>=0;i--) ctx.lineTo(27+(i/(K-1))*(173-27),N[i].y);
+  ctx.lineTo(27,N[0].y);ctx.closePath();
+  ctx.fill();
+
+  /* ── Depth darkening ── */
+  const dg=ctx.createLinearGradient(0,sim.surfaceY,0,FLOOR);
+  dg.addColorStop(0,'rgba(0,10,40,0)');
+  dg.addColorStop(1,'rgba(0,10,40,0.3)');
+  ctx.fillStyle=dg;
+  ctx.beginPath();
+  ctx.moveTo(27,FLOOR);ctx.lineTo(173,FLOOR);ctx.lineTo(173,N[K-1].y);
+  for(let i=K-1;i>=0;i--) ctx.lineTo(27+(i/(K-1))*(173-27),N[i].y);
+  ctx.lineTo(27,N[0].y);ctx.closePath();
+  ctx.fill();
+
+  /* ── Bubbles ── */
+  for(const b of sim.bubbles){
+    if(b.y < sim.surfaceY) continue;
+    ctx.globalAlpha = b.life * 0.65;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+    ctx.strokeStyle='rgba(180,235,255,0.8)';
+    ctx.lineWidth=0.8;
+    ctx.stroke();
+    // tiny glint
+    ctx.beginPath();
+    ctx.arc(b.x-b.r*0.3, b.y-b.r*0.3, b.r*0.25, 0, Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,0.7)';
+    ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  /* ── Side light reflection ── */
+  ctx.fillStyle='rgba(255,255,255,0.04)';
+  ctx.fillRect(27,sim.surfaceY,12,FLOOR-sim.surfaceY);
+
   ctx.restore();
 }
 
 function startRaf(uid){
   const sim=sims[uid]; if(!sim)return;
-  function frame(){
-    stepSim(uid);
-    renderSim(uid);
-    sim.rafId=requestAnimationFrame(frame);
-  }
-  if(sim.rafId) cancelAnimationFrame(sim.rafId);
+  function frame(){stepSim(uid);renderSim(uid);sim.rafId=requestAnimationFrame(frame);}
+  if(sim.rafId)cancelAnimationFrame(sim.rafId);
   sim.rafId=requestAnimationFrame(frame);
 }
 
-/* ═══════════════════════════════════
+/* ═══════════════════════════════════════════
    DEVICE MOTION
-═══════════════════════════════════ */
+═══════════════════════════════════════════ */
 function initTilt(){
   function onMotion(e){
     const a=e.accelerationIncludingGravity; if(!a||a.x==null)return;
@@ -417,42 +381,35 @@ function initTilt(){
         DeviceMotionEvent.requestPermission().then(r=>{if(r==='granted')window.addEventListener('devicemotion',onMotion);}).catch(()=>{});
         document.removeEventListener('click',ask);
       },{once:true});
-    } else {
-      window.addEventListener('devicemotion',onMotion);
-    }
+    } else { window.addEventListener('devicemotion',onMotion); }
   }
-  // desktop: mouse tilt
   window.addEventListener('mousemove',e=>{
-    gx=-((e.clientX-window.innerWidth/2)/(window.innerWidth/2))*1.4;
-  });
-  // desktop: dblclick shake
-  window.addEventListener('dblclick',()=>{
-    Object.values(sims).forEach(s=>s.particles.forEach(p=>{p.vx+=(Math.random()-.5)*18;p.vy+=(Math.random()-.5)*18;}));
+    gx=-((e.clientX-window.innerWidth/2)/(window.innerWidth/2))*1.5;
   });
 }
 
-/* ═══════════════════════════════════
-   SVG SHELL (transparent body bg,
-   cap, highlights drawn on top of canvas)
-═══════════════════════════════════ */
+/* ═══════════════════════════════════════════
+   STORAGE
+═══════════════════════════════════════════ */
+function todayKey(id){const d=new Date();return`awa-b${id}-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;}
+function getMl(id){return parseInt(localStorage.getItem(todayKey(id))||'0');}
+function setMl(id,ml){localStorage.setItem(todayKey(id),Math.max(0,ml));}
+function getSaved(){return JSON.parse(localStorage.getItem('awa-bottles')||'[]');}
+function saveBts(){localStorage.setItem('awa-bottles',JSON.stringify(bottles));}
+let bottles=[], current=0, transitioning=false;
+
+/* ═══════════════════════════════════════════
+   SVG BOTTLE SHELL
+═══════════════════════════════════════════ */
 function makeBottleSVG(uid){
   return `
 <canvas class="bottle-canvas" id="wc-${uid}"></canvas>
 <svg class="bottle-svg" id="svg-${uid}" viewBox="0 0 200 520" xmlns="http://www.w3.org/2000/svg">
-  <!-- NO fill on body — canvas underneath shows through -->
-  <!-- outline only -->
   <path d="M88,0 L88,10 C88,10 82,12 79,16 L75,24 L75,34 C58,40 38,62 34,92 L30,126 C28,138 27,150 27,162 L27,400 C27,438 60,468 100,468 C140,468 173,438 173,400 L173,162 C173,150 172,138 170,126 L166,92 C162,62 142,40 125,34 L125,24 L121,16 C118,12 112,10 112,10 L112,0 Z"
     fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="1.5"/>
-
-  <!-- glass highlight left edge (decorative, on top) -->
   <path d="M34,170 Q28,285 32,395" stroke="rgba(255,255,255,0.07)" stroke-width="7" fill="none" stroke-linecap="round"/>
   <path d="M37,178 Q32,285 35,388" stroke="rgba(255,255,255,0.18)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-
-  <!-- upper glass glare -->
-  <path d="M88,0 L88,10 C88,10 82,12 79,16 L75,24 L75,34 C58,40 38,62 34,92 L30,126 C28,138 27,150 27,162 L27,270 C55,262 74,258 88,258 L112,258 C126,258 145,262 173,270 L173,162 C173,150 172,138 170,126 L166,92 C162,62 142,40 125,34 L125,24 L121,16 C118,12 112,10 112,10 L112,0 Z"
-    fill="rgba(255,255,255,0.028)"/>
-
-  <!-- CAP (solid, covers top of canvas) -->
+  <path d="M88,0 L88,10 C88,10 82,12 79,16 L75,24 L75,34 C58,40 38,62 34,92 L30,126 C28,138 27,150 27,162 L27,270 C55,262 74,258 88,258 L112,258 C126,258 145,262 173,270 L173,162 C173,150 172,138 170,126 L166,92 C162,62 142,40 125,34 L125,24 L121,16 C118,12 112,10 112,10 L112,0 Z" fill="rgba(255,255,255,0.025)"/>
   <rect x="74" y="0" width="52" height="14" rx="5" fill="#111d38"/>
   <rect x="74" y="0" width="52" height="14" rx="5" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width=".5"/>
   <rect x="70" y="12" width="60" height="22" rx="4" fill="#0e1a30"/>
@@ -469,29 +426,13 @@ function makeBottleSVG(uid){
   <path d="M67,34 Q100,40 133,34" stroke="rgba(255,255,255,0.12)" stroke-width="1" fill="none" stroke-linecap="round"/>
   <text x="100" y="60" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="7" font-weight="600" fill="rgba(255,255,255,0.16)" letter-spacing="2.5">OWALA</text>
   <line x1="63" y1="78" x2="137" y2="78" stroke="rgba(0,0,0,0.3)" stroke-width="1.5"/>
-
-  <!-- base shadow -->
   <ellipse cx="100" cy="464" rx="42" ry="5" fill="rgba(0,0,0,0.25)"/>
-  <!-- outer drop shadow on whole bottle -->
-  <path d="M88,0 L88,10 C88,10 82,12 79,16 L75,24 L75,34 C58,40 38,62 34,92 L30,126 C28,138 27,150 27,162 L27,400 C27,438 60,468 100,468 C140,468 173,438 173,400 L173,162 C173,150 172,138 170,126 L166,92 C162,62 142,40 125,34 L125,24 L121,16 C118,12 112,10 112,10 L112,0 Z"
-    fill="none" stroke="rgba(0,0,0,0.0)" stroke-width="0"/>
 </svg>`;
 }
 
-/* ═══════════════════════════════════
-   STORAGE
-═══════════════════════════════════ */
-function todayKey(id){const d=new Date();return`awa-b${id}-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;}
-function getMl(id){return parseInt(localStorage.getItem(todayKey(id))||'0');}
-function setMl(id,ml){localStorage.setItem(todayKey(id),Math.max(0,ml));}
-function getSaved(){return JSON.parse(localStorage.getItem('awa-bottles')||'[]');}
-function saveBts(){localStorage.setItem('awa-bottles',JSON.stringify(bottles));}
-
-let bottles=[], current=0, transitioning=false;
-
-/* ═══════════════════════════════════
-   CARD
-═══════════════════════════════════ */
+/* ═══════════════════════════════════════════
+   CARD / DOTS / UI
+═══════════════════════════════════════════ */
 function makeCardHTML(b,idx){
   const uid=b.id;
   return `<div class="bottle-card" id="card-${uid}" data-idx="${idx}">
@@ -507,22 +448,22 @@ function makeCardHTML(b,idx){
     <div class="ptrack"><div class="pfill" id="prog-${uid}"></div></div>
     <div class="btn-row">
       <button class="btn-ml btn-minus" id="undo-${uid}" disabled>
-        <span class="btn-ml-icon">−</span>
-        <span class="btn-ml-label">50 ML</span>
+        <span class="btn-ml-icon">−</span><span class="btn-ml-label">50 ML</span>
       </button>
       <button class="btn-add" id="addbottle-${uid}">+ Botella</button>
       <button class="btn-ml btn-plus" id="add50-${uid}">
-        <span class="btn-ml-icon">+</span>
-        <span class="btn-ml-label">50 ML</span>
+        <span class="btn-ml-icon">+</span><span class="btn-ml-label">50 ML</span>
       </button>
     </div>
   </div>`;
 }
 
-/* ═══════════════════════════════════
-   RENDER UI
-═══════════════════════════════════ */
-function renderUI(uid, ml){
+function renderDots(){
+  document.getElementById('dots').innerHTML=
+    bottles.map((_,i)=>`<div class="dot${i===current?' active':''}"></div>`).join('');
+}
+
+function renderUI(uid,ml){
   const frac=Math.min(ml/BOTTLE_GOAL,1);
   const lnum=document.getElementById(`lnum-${uid}`); if(!lnum)return;
   lnum.textContent=(ml/1000).toFixed(1);
@@ -533,57 +474,39 @@ function renderUI(uid, ml){
   const addB=document.getElementById(`addbottle-${uid}`);
   const bar=document.getElementById('completeBar');
   if(ml>=BOTTLE_GOAL){
-    svg?.classList.add('glowing');
-    bar.classList.add('show');
-    if(addB&&bottles.length<MAX_BOTTLES) addB.classList.add('visible');
+    svg?.classList.add('glowing');bar.classList.add('show');
+    if(addB&&bottles.length<MAX_BOTTLES)addB.classList.add('visible');
   } else {
-    svg?.classList.remove('glowing');
-    bar.classList.remove('show');
+    svg?.classList.remove('glowing');bar.classList.remove('show');
     addB?.classList.remove('visible');
   }
 }
 
-/* ═══════════════════════════════════
-   DOTS
-═══════════════════════════════════ */
-function renderDots(){
-  document.getElementById('dots').innerHTML=
-    bottles.map((_,i)=>`<div class="dot${i===current?' active':''}"></div>`).join('');
-}
-
-/* ═══════════════════════════════════
+/* ═══════════════════════════════════════════
    DRINK / UNDO
-═══════════════════════════════════ */
+═══════════════════════════════════════════ */
 function addMl(idx,amount){
   const b=bottles[idx]; if(!b)return;
   let ml=getMl(b.id);
   if(ml>=BOTTLE_GOAL){showToast('Botella completa');return;}
   ml=Math.min(BOTTLE_GOAL,ml+amount);
   setMl(b.id,ml); renderUI(b.id,ml);
-  spawnDrops(b.id, Math.round(amount/ML_PER_PARTICLE));
-  if(ml>=BOTTLE_GOAL) setTimeout(()=>showToast('Botella llena — agrega la siguiente'),700);
+  spawnDrops(b.id, amount);
+  if(ml>=BOTTLE_GOAL)setTimeout(()=>showToast('Botella llena — agrega la siguiente'),700);
 }
 function removeMl(idx){
   const b=bottles[idx]; if(!b)return;
   let ml=getMl(b.id); if(ml<=0)return;
-  const prev=ml;
   ml=Math.max(0,ml-ML_PER_DRINK);
   setMl(b.id,ml); renderUI(b.id,ml);
   const sim=sims[b.id];
-  if(sim){const n=Math.round((prev-ml)/ML_PER_PARTICLE);sim.particles.splice(-n,n);}
+  if(sim){ sim.ml=ml; sim.targetY=FLOOR-(ml/BOTTLE_GOAL)*BOTTLE_AREA_H; }
   showToast(`-${ML_PER_DRINK} ML`);
 }
 
-/* ═══════════════════════════════════
+/* ═══════════════════════════════════════════
    ADD BOTTLE
-═══════════════════════════════════ */
-function openModal(){document.getElementById('sizeInput').value='1000';document.getElementById('modalBg').classList.add('show');setTimeout(()=>document.getElementById('sizeInput').focus(),350);}
-function closeModal(){document.getElementById('modalBg').classList.remove('show');}
-function confirmAdd(){
-  const val=parseInt(document.getElementById('sizeInput').value);
-  if(!val||val<50||val>5000){showToast('Tamaño inválido');return;}
-  closeModal();addBottle(val);
-}
+═══════════════════════════════════════════ */
 function addBottle(sizeMl){
   if(transitioning||bottles.length>=MAX_BOTTLES)return;
   transitioning=true;
@@ -595,9 +518,7 @@ function addBottle(sizeMl){
   tmp.innerHTML=makeCardHTML(nb,bottles.length-1);
   const newCard=tmp.firstChild;
   stage.appendChild(newCard);
-  makeSim(nb.id,0);
-  startRaf(nb.id);
-  renderUI(nb.id,0);
+  makeSim(nb.id,0);startRaf(nb.id);renderUI(nb.id,0);
   wireCard(nb,bottles.length-1);
   requestAnimationFrame(()=>{
     if(oldCard){oldCard.classList.add('slide-out-left');oldCard.addEventListener('animationend',()=>oldCard.remove(),{once:true});}
@@ -608,12 +529,12 @@ function addBottle(sizeMl){
 function wireCard(b,idx){
   document.getElementById(`undo-${b.id}`)?.addEventListener('click',()=>removeMl(idx));
   document.getElementById(`add50-${b.id}`)?.addEventListener('click',()=>addMl(idx,ML_PER_DRINK));
-  document.getElementById(`addbottle-${b.id}`)?.addEventListener('click',openModal);
+  document.getElementById(`addbottle-${b.id}`)?.addEventListener('click',()=>addBottle(1000));
 }
 
-/* ═══════════════════════════════════
-   INIT
-═══════════════════════════════════ */
+/* ═══════════════════════════════════════════
+   INIT / TOAST / URL / RESET
+═══════════════════════════════════════════ */
 function initStage(){
   const saved=getSaved();
   bottles=saved.length?saved:[{id:1,sizeMl:1000}];
@@ -623,29 +544,29 @@ function initStage(){
   document.getElementById('stage').innerHTML=makeCardHTML(b,current);
   wireCard(b,current);
   const ml=getMl(b.id);
-  makeSim(b.id,ml);
-  startRaf(b.id);
-  renderUI(b.id,ml);
+  makeSim(b.id,ml);startRaf(b.id);renderUI(b.id,ml);
   renderDots();
 }
 
-/* ═══════════════════════════════════
-   TOAST / URL / RESET
-═══════════════════════════════════ */
 let tt;
 function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),2600);}
+
 function handleURL(){
   const p=new URLSearchParams(location.search);
-  if(p.get('action')==='drink'){history.replaceState({},'',location.pathname);const idx=Math.min((parseInt(p.get('bottle')||'1')-1),bottles.length-1);setTimeout(()=>addMl(idx,ML_PER_DRINK),500);}
+  if(p.get('action')==='drink'){
+    history.replaceState({},'',location.pathname);
+    const bParam=p.get('bottle');
+    const idx=bParam?Math.min(parseInt(bParam)-1,bottles.length-1):bottles.length-1;
+    setTimeout(()=>addMl(idx,ML_PER_DRINK),500);
+  }
 }
 function schedReset(){
   const now=new Date();
-  setTimeout(()=>{bottles.forEach(b=>{setMl(b.id,0);renderUI(b.id,0);if(sims[b.id])sims[b.id].particles=[];});schedReset();},new Date(now.getFullYear(),now.getMonth(),now.getDate()+1)-now);
+  setTimeout(()=>{
+    bottles.forEach(b=>{setMl(b.id,0);renderUI(b.id,0);if(sims[b.id]){sims[b.id].ml=0;sims[b.id].targetY=FLOOR;}});
+    schedReset();
+  },new Date(now.getFullYear(),now.getMonth(),now.getDate()+1)-now);
 }
-
-document.getElementById('btnConfirm').addEventListener('click',confirmAdd);
-document.getElementById('sizeInput').addEventListener('keydown',e=>{if(e.key==='Enter')confirmAdd();});
-document.getElementById('modalBg').addEventListener('click',e=>{if(e.target===document.getElementById('modalBg'))closeModal();});
 
 initStage();handleURL();schedReset();initTilt();
 </script>
