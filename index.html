@@ -108,18 +108,19 @@ const MAX_BOTTLES  = 3;
    BOTTLE GEOMETRY  (SVG viewBox 200×520)
 ═══════════════════════════════════════════ */
 const SIM_W = 200, SIM_H = 520;
-const FLOOR  = 455;  // bottom of water area
-const CEIL   = 85;   // top of water area (below cap)
+const FLOOR  = 463;  // bottom — all the way to base
+const CEIL   = 90;   // top of water area (below cap)
 
 // Returns inner wall x at given y
 function wallX(y){
-  if(y < 90)  return {l:30, r:170};
-  if(y < 130) return {l:28, r:172};
+  if(y < 90)  return {l:34, r:166};
+  if(y < 130) return {l:29, r:171};
   if(y < 400) return {l:27, r:173};
-  const t=(y-400)/55; return {l:27+t*14, r:173-t*14};
+  if(y < 455) {const t=(y-400)/55; return {l:27+t*14, r:173-t*14};}
+  return {l:41,r:159};
 }
 
-const BOTTLE_AREA_H = FLOOR - CEIL; // 370px
+const BOTTLE_AREA_H = FLOOR - CEIL; // 373px
 
 /* ═══════════════════════════════════════════
    WATER SIMULATION
@@ -153,28 +154,7 @@ function makeSim(uid, currentMl){
 }
 
 function spawnDrops(uid, mlAdded){
-  const sim = sims[uid]; if(!sim) return;
-  // Update target level
-  sim.ml = Math.min(sim.ml + mlAdded, BOTTLE_GOAL);
-  const fillRatio = sim.ml / BOTTLE_GOAL;
-  sim.targetY = FLOOR - fillRatio * BOTTLE_AREA_H;
-  // Splash: disturb surface nodes
-  const center = Math.floor(sim.nodes.length / 2);
-  for(let i=0;i<sim.nodes.length;i++){
-    const dist = Math.abs(i - center);
-    sim.nodes[i].vy -= (8 - dist*0.5) * Math.max(0, 8-dist);
-  }
-  // Spawn bubbles
-  for(let b=0;b<Math.min(8, Math.round(mlAdded/10));b++){
-    const w = wallX(FLOOR-20);
-    sim.bubbles.push({
-      x: w.l+10 + Math.random()*(w.r-w.l-20),
-      y: FLOOR - 5 - Math.random()*30,
-      vy: -(0.4 + Math.random()*0.8),
-      r:  1.5 + Math.random()*2.5,
-      life: 1.0
-    });
-  }
+  // No-op — addMl handles everything directly now
 }
 
 function stepSim(uid){
@@ -203,12 +183,18 @@ function stepSim(uid){
     }
   }
 
-  // Tilt effect from device motion
-  if(Math.abs(gx) > 0.05){
-    for(let i=0;i<K;i++){
-      const tiltOffset = gx * 18 * (i/(K-1) - 0.5); // left side rises/falls
-      N[i].vy += (tiltOffset - (N[i].y - sim.surfaceY)) * 0.008;
-    }
+  // Tilt: gx tilts surface (right tilt = water goes right = left side rises)
+  // gy handles upside-down (when gy<0 bottle is flipped)
+  const tiltAmp = gx * 28;  // max tilt offset in sim px
+  for(let i=0;i<K;i++){
+    const t = i/(K-1);  // 0=left, 1=right
+    const targetOffset = tiltAmp * (t - 0.5);
+    N[i].vy += (targetOffset - (N[i].y - sim.surfaceY)) * 0.015;
+  }
+  // Upside-down: when phone flipped, water rushes to cap side
+  if(gy < -0.3){
+    // Gravity pulling toward top — water "falls up"
+    sim.surfaceY += (CEIL + 10 - sim.surfaceY) * 0.04;
   }
 
   // Update bubbles
@@ -278,19 +264,19 @@ function renderSim(uid){
   clipBottle(ctx);ctx.clip();
 
   /* ── Draw water body ── */
+  // Build water polygon — follows actual bottle shape at bottom
   ctx.beginPath();
-  // Start bottom-left
-  ctx.moveTo(27, FLOOR);
-  // Bottom edge
-  ctx.lineTo(173, FLOOR);
+  ctx.moveTo(27, FLOOR-10);
+  // Bottom curve (matches bottle base)
+  ctx.bezierCurveTo(27,468, 60,472, 100,472);
+  ctx.bezierCurveTo(140,472, 173,468, 173,FLOOR-10);
   // Up right wall
   ctx.lineTo(173, N[K-1].y);
-  // Surface (right to left, wavy)
+  // Surface right to left
   for(let i=K-1;i>=0;i--){
     const x = 27 + (i/(K-1))*(173-27);
     ctx.lineTo(x, N[i].y);
   }
-  // Down left wall
   ctx.lineTo(27, N[0].y);
   ctx.closePath();
 
@@ -319,7 +305,7 @@ function renderSim(uid){
   hg.addColorStop(1,'rgba(160,230,255,0)');
   ctx.fillStyle=hg;
   ctx.beginPath();
-  ctx.moveTo(27,FLOOR);ctx.lineTo(173,FLOOR);ctx.lineTo(173,N[K-1].y);
+  ctx.moveTo(27,FLOOR-10);ctx.bezierCurveTo(27,468,60,472,100,472);ctx.bezierCurveTo(140,472,173,468,173,FLOOR-10);ctx.lineTo(173,N[K-1].y);
   for(let i=K-1;i>=0;i--) ctx.lineTo(27+(i/(K-1))*(173-27),N[i].y);
   ctx.lineTo(27,N[0].y);ctx.closePath();
   ctx.fill();
@@ -330,7 +316,7 @@ function renderSim(uid){
   dg.addColorStop(1,'rgba(0,10,40,0.3)');
   ctx.fillStyle=dg;
   ctx.beginPath();
-  ctx.moveTo(27,FLOOR);ctx.lineTo(173,FLOOR);ctx.lineTo(173,N[K-1].y);
+  ctx.moveTo(27,FLOOR-10);ctx.bezierCurveTo(27,468,60,472,100,472);ctx.bezierCurveTo(140,472,173,468,173,FLOOR-10);ctx.lineTo(173,N[K-1].y);
   for(let i=K-1;i>=0;i--) ctx.lineTo(27+(i/(K-1))*(173-27),N[i].y);
   ctx.lineTo(27,N[0].y);ctx.closePath();
   ctx.fill();
@@ -491,7 +477,29 @@ function addMl(idx,amount){
   if(ml>=BOTTLE_GOAL){showToast('Botella completa');return;}
   ml=Math.min(BOTTLE_GOAL,ml+amount);
   setMl(b.id,ml); renderUI(b.id,ml);
-  spawnDrops(b.id, amount);
+  // Sync sim.ml with reality before spawning
+  const sim=sims[b.id];
+  if(sim){
+    sim.ml=ml;
+    sim.targetY=FLOOR-(ml/BOTTLE_GOAL)*BOTTLE_AREA_H;
+    // Splash nodes
+    const K=sim.nodes.length, center=Math.floor(K/2);
+    for(let i=0;i<K;i++){
+      const dist=Math.abs(i-center);
+      if(dist<6) sim.nodes[i].vy-=(6-dist)*2.5;
+    }
+    // Spawn bubbles
+    for(let b2=0;b2<6;b2++){
+      const w=wallX(FLOOR-20);
+      sim.bubbles.push({
+        x:w.l+10+Math.random()*(w.r-w.l-20),
+        y:FLOOR-5-Math.random()*25,
+        vy:-(0.4+Math.random()*0.8),
+        r:1.5+Math.random()*2.5,
+        life:1.0
+      });
+    }
+  }
   if(ml>=BOTTLE_GOAL)setTimeout(()=>showToast('Botella llena — agrega la siguiente'),700);
 }
 function removeMl(idx){
