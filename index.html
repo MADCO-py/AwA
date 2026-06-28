@@ -166,7 +166,7 @@ function stepSim(uid){
   sim.surfaceY += (sim.targetY - sim.surfaceY) * 0.035;
 
   // Spring wave simulation on surface nodes
-  const SPRING = 0.04, DAMP = 0.88, SPREAD = 0.22;
+  const SPRING = 0.03, DAMP = 0.92, SPREAD = 0.28;
   for(let i=0;i<K;i++){
     const n = N[i];
     // Spring toward mean surface
@@ -186,12 +186,11 @@ function stepSim(uid){
   // gx = left/right tilt (-1=left, +1=right)
   // When tilted right: right side of bottle goes down → water surface
   // tilts: right nodes go DOWN, left nodes go UP
-  const tiltAmp = gx * 35;
+  const tiltAmp = gx * 90;  // much stronger tilt
   for(let i=0;i<K;i++){
-    const t = i/(K-1);        // 0=left edge, 1=right edge
+    const t = i/(K-1);
     const targetOffset = tiltAmp * (t - 0.5);
-    // Pull node toward its tilted target position
-    N[i].vy += (targetOffset - (N[i].y - sim.surfaceY)) * 0.018;
+    N[i].vy += (targetOffset - (N[i].y - sim.surfaceY)) * 0.06;
   }
 
   // Update bubbles
@@ -357,7 +356,7 @@ function initTilt(){
     const a=e.accelerationIncludingGravity; if(!a||a.x==null)return;
     // ax: negative=tilt left, positive=tilt right (in portrait mode)
     // Normalize to -1..+1 where +1 = fully right
-    gx = Math.max(-1, Math.min(1, a.x / 6));
+    gx = Math.max(-1.5, Math.min(1.5, a.x / 4));
     gy = Math.max(-1, Math.min(1, a.y / 9.8));
   }
   if(window.DeviceMotionEvent){
@@ -370,7 +369,7 @@ function initTilt(){
   }
   window.addEventListener('mousemove',e=>{
     // Mouse: moving right = tilt right
-    gx = ((e.clientX-window.innerWidth/2)/(window.innerWidth/2));
+    gx = ((e.clientX-window.innerWidth/2)/(window.innerWidth/2)) * 1.5;
   });
 }
 
