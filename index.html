@@ -781,38 +781,70 @@ function flashNFC(uid){
   if(navigator.vibrate) navigator.vibrate([30,20,60]);
 }
 
-// ── Tab presence via BroadcastChannel PING ──────────────
-// More reliable than localStorage heartbeat on mobile.
-// When NFC tab opens, it sends PING and waits for PONG.
-// If existing tab responds with PONG within 600ms → it's alive.
-// No localStorage state to go stale when browser kills the tab.
-const TAB_BC = new BroadcastChannel('awa-tab');
+// ── Tab identity ─────────────────────────────────────────
+// sessionStorage is cleared when browser fully closes.
+// If 'awa-main' exists in sessionStorage → this tab survived a suspend.
+// We use this + BroadcastChannel PING to decide what to do.
 
-// Existing tabs always reply to PING
+const IS_MAIN = !!sessionStorage.getItem('awa-main');
+
+// Mark this tab as main (only if not handling an NFC action)
+if(!new URLSearchParams(location.search).get('action')){
+  sessionStorage.setItem('awa-main','1');
+}
+
+// Reply to PINGs from NFC tabs
+const TAB_BC = new BroadcastChannel('awa-tab');
 TAB_BC.onmessage = e => {
   if(e.data === 'PING') TAB_BC.postMessage('PONG');
 };
+
+// When this main tab closes, clear the session marker
+window.addEventListener('pagehide', ()=>{
+  // pagehide fires on tab close AND on browser close (more reliable than beforeunload on mobile)
+  sessionStorage.removeItem('awa-main');
+  // Only clear localStorage marker if no other AwA tabs exist
+  // We can't check easily, so use a small delay flag
+  localStorage.setItem('awa-closing', Date.now().toString());
+});
+window.addEventListener('pageshow', ()=>{
+  // If we're being restored from bfcache (back/forward), re-mark as main
+  sessionStorage.setItem('awa-main','1');
+  localStorage.removeItem('awa-closing');
+});
 
 function handleURL(){
   const p=new URLSearchParams(location.search);
   if(p.get('action')==='drink'){
     history.replaceState({},'',location.pathname);
 
+    // sessionStorage is empty = browser was fully closed = no surviving tabs
+    // In that case skip PING entirely and stay open immediately
+    const hadSession = !!sessionStorage.getItem('awa-main') ||
+                       !!localStorage.getItem('awa-had-session');
+
+    if(!hadSession){
+      // Browser was closed → no existing tabs possible → stay open
+      sessionStorage.setItem('awa-main','1');
+      localStorage.setItem('awa-had-session','1');
+      const b=bottles[current]; if(b) flashNFC(b.id);
+      addMl(current,ML_PER_DRINK);
+      return;
+    }
+
+    // Browser was open → check if AwA tab is alive via PING
     const pingCh = new BroadcastChannel('awa-tab');
-    let gotPong = false;
     let handled = false;
 
-    function onPong(){
-      if(handled) return;
+    pingCh.onmessage = e => {
+      if(e.data !== 'PONG' || handled) return;
       handled = true;
-      gotPong = true;
       pingCh.close();
 
-      // Existing tab alive — delegate and close
-      const drinkCh = new BroadcastChannel('awa-nfc');
-      drinkCh.postMessage({type:'DRINK', bottle: p.get('bottle')||'1'});
-      drinkCh.close();
+      // Existing tab handles drink
+      new BroadcastChannel('awa-nfc').postMessage({type:'DRINK'});
 
+      // Confirmation + close this new tab
       document.body.innerHTML=`
         <div style="display:flex;align-items:center;justify-content:center;
           height:100dvh;background:#080c14;
@@ -824,22 +856,23 @@ function handleURL(){
           <span style="font-size:11px;color:rgba(255,255,255,.35);letter-spacing:.12em">REGISTRADO</span>
         </div>`;
       setTimeout(()=>window.close(), 900);
-    }
+    };
 
-    // If PONG arrives quickly → existing tab is alive
-    pingCh.onmessage = e => { if(e.data === 'PONG') onPong(); };
     pingCh.postMessage('PING');
 
-    // Final deadline — if no PONG after 800ms, no tab is alive
+    // No PONG after 600ms = had session but AwA tab wasn't open → stay open
     setTimeout(()=>{
       if(handled) return;
-      handled = true;
+      handled=true;
       pingCh.close();
-      // Stay open, handle drink here
-      const b=bottles[current];
-      if(b) flashNFC(b.id);
-      addMl(current, ML_PER_DRINK);
-    }, 800);
+      sessionStorage.setItem('awa-main','1');
+      const b=bottles[current]; if(b) flashNFC(b.id);
+      addMl(current,ML_PER_DRINK);
+    }, 600);
+  } else {
+    // Normal load (no NFC action) — mark as main session
+    sessionStorage.setItem('awa-main','1');
+    localStorage.setItem('awa-had-session','1');
   }
 }
 
