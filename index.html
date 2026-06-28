@@ -781,53 +781,58 @@ function flashNFC(uid){
   if(navigator.vibrate) navigator.vibrate([30,20,60]);
 }
 
+// ── Tab heartbeat: mark this tab as alive every 3s ──────
+const TAB_KEY = 'awa-tab-alive';
+const TAB_ID  = Date.now() + Math.random();
+function heartbeat(){
+  localStorage.setItem(TAB_KEY, JSON.stringify({id:TAB_ID, ts:Date.now()}));
+}
+heartbeat();
+setInterval(heartbeat, 3000);
+window.addEventListener('focus', heartbeat);
+// Clear on unload
+window.addEventListener('beforeunload',()=>{
+  const alive = JSON.parse(localStorage.getItem(TAB_KEY)||'{}');
+  if(alive.id === TAB_ID) localStorage.removeItem(TAB_KEY);
+});
+
+function isMainTabAlive(){
+  const alive = JSON.parse(localStorage.getItem(TAB_KEY)||'{}');
+  if(!alive.ts) return false;
+  // Consider alive if heartbeat < 6s ago AND it's not us
+  return (Date.now() - alive.ts < 6000) && (alive.id !== TAB_ID);
+}
+
 function handleURL(){
   const p=new URLSearchParams(location.search);
   if(p.get('action')==='drink'){
     history.replaceState({},'',location.pathname);
 
-    const bc = new BroadcastChannel('awa-nfc');
-    let handled = false;
-
-    bc.onmessage = e => {
-      if(e.data?.type==='ACK') handled=true;
-    };
-
-    // Broadcast to any existing AwA tabs
-    bc.postMessage({type:'DRINK', bottle: p.get('bottle')||'1'});
-
-    setTimeout(()=>{
+    // Check if another AwA tab is already open and alive
+    if(isMainTabAlive()){
+      // Yes — broadcast and close this tab
+      const bc = new BroadcastChannel('awa-nfc');
+      bc.postMessage({type:'DRINK', bottle: p.get('bottle')||'1'});
       bc.close();
-      if(handled){
-        // An existing tab handled it.
-        // Only close if this tab was opened BY the NFC scan
-        // (i.e. window.history.length === 1 = brand new tab with no history)
-        if(window.history.length <= 1){
-          // Brand new tab opened by NFC — safe to close
-          window.close();
-          // Fallback: show confirmation (some browsers block window.close)
-          document.body.innerHTML=`
-            <div style="display:flex;align-items:center;justify-content:center;
-              height:100dvh;background:#080c14;color:rgba(255,255,255,0.5);
-              font-family:-apple-system,sans-serif;flex-direction:column;gap:14px;">
-              <svg width="44" height="52" viewBox="0 0 24 28" fill="#0a84ff">
-                <path d="M12 1C12 1 3 11 3 17a9 9 0 0018 0C21 11 12 1 12 1z"/>
-              </svg>
-              <span style="font-size:16px;font-weight:500;color:#fff">+50 ML</span>
-              <span style="font-size:12px;opacity:.4;letter-spacing:.08em">REGISTRADO</span>
-            </div>`;
-          // Don't redirect — just leave the confirmation visible briefly
-          setTimeout(()=>window.close(), 2000);
-        }
-        // If history.length > 1: user had navigated before, don't close
-        // Just leave the tab as is — the other tab already handled the drink
-      } else {
-        // No existing tab — this IS the main tab, handle normally
-        const b=bottles[current];
-        if(b) flashNFC(b.id);
-        addMl(current, ML_PER_DRINK);
-      }
-    }, 400);
+
+      // Show quick confirmation then close
+      document.body.innerHTML=`
+        <div style="display:flex;align-items:center;justify-content:center;
+          height:100dvh;background:#080c14;
+          font-family:-apple-system,sans-serif;flex-direction:column;gap:14px;">
+          <svg width="44" height="54" viewBox="0 0 24 28" fill="#0a84ff">
+            <path d="M12 1C12 1 3 11 3 17a9 9 0 0018 0C21 11 12 1 12 1z"/>
+          </svg>
+          <span style="font-size:17px;font-weight:600;color:#fff;letter-spacing:-.02em">+50 ML</span>
+          <span style="font-size:11px;color:rgba(255,255,255,.35);letter-spacing:.12em">REGISTRADO</span>
+        </div>`;
+      setTimeout(()=>window.close(), 900);
+    } else {
+      // No other tab alive — handle here normally, stay open
+      const b=bottles[current];
+      if(b) flashNFC(b.id);
+      addMl(current, ML_PER_DRINK);
+    }
   }
 }
 
@@ -835,7 +840,7 @@ function handleURL(){
 const _bc = new BroadcastChannel('awa-nfc');
 _bc.onmessage = e => {
   if(e.data?.type==='DRINK'){
-    _bc.postMessage({type:'ACK'});
+    heartbeat(); // refresh our heartbeat
     const b=bottles[current];
     if(b) flashNFC(b.id);
     addMl(current, ML_PER_DRINK);
