@@ -2,6 +2,12 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"/>
+<meta name="theme-color" content="#080c14"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="AwA"/>
+<link rel="manifest" href="manifest.json"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
 <title>AwA</title>
 <style>
@@ -213,6 +219,7 @@ html,body{width:100%;height:100%;background:var(--bg);color:#fff;
 </style>
 </head>
 <body>
+<div id="nfc-screen-flash"></div>
 <div class="app-scroll" id="appScroll">
   <!-- Screen 1: Bottle -->
   <div class="screen" id="screen-bottle">
@@ -758,10 +765,20 @@ function showToast(msg){const el=document.getElementById('toast');el.textContent
 
 function flashNFC(uid){
   const svg=document.getElementById('svg-'+uid); if(!svg)return;
+  // Bottle glow
   svg.classList.remove('nfc-glow');
-  void svg.offsetWidth; // reflow to restart animation
+  void svg.offsetWidth;
   svg.classList.add('nfc-glow');
   svg.addEventListener('animationend',()=>svg.classList.remove('nfc-glow'),{once:true});
+  // Screen flash
+  const sf=document.getElementById('nfc-screen-flash');
+  if(sf){
+    sf.style.animation='none';
+    void sf.offsetWidth;
+    sf.style.animation='screen-flash 1.4s ease-out forwards';
+  }
+  // Haptic (mobile)
+  if(navigator.vibrate) navigator.vibrate([30,20,60]);
 }
 
 function handleURL(){
@@ -938,6 +955,19 @@ document.getElementById('appScroll')?.addEventListener('scroll',()=>{
   const scroll=document.getElementById('appScroll');
   if(scroll.scrollTop > window.innerHeight*0.4) renderStats();
 },{passive:true});
+
+// Register Service Worker (prevents NFC from opening new tab)
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+  // Listen for NFC messages from SW
+  navigator.serviceWorker.addEventListener('message', e => {
+    if(e.data?.type === 'NFC_DRINK'){
+      const b = bottles[current]; if(!b) return;
+      flashNFC(b.id);
+      setTimeout(()=>addMl(current, ML_PER_DRINK), 200);
+    }
+  });
+}
 
 initStage();handleURL();schedReset();initTilt();
 setTimeout(renderStats,500);

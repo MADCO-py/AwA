@@ -1,0 +1,18 @@
+{
+  "name": "AwA — Hydration Tracker",
+  "short_name": "AwA",
+  "description": "Track your daily water intake with NFC",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080c14",
+  "theme_color": "#080c14",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='120' fill='%23080c14'/><path d='M256 80C256 80 140 220 140 310a116 116 0 00232 0C372 220 256 80 256 80z' fill='%230a84ff'/><path d='M256 80C256 80 140 220 140 310a116 116 0 00232 0C372 220 256 80 256 80z' fill='url(%23g)' opacity='.4'/><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='white'/><stop offset='1' stop-color='transparent'/></linearGradient></defs></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
