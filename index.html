@@ -2,121 +2,56 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
 <title>AwA</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#080c14;
-  --blue:#3b9eff;
-  --blue-dim:#1a5fa8;
-  --text-dim:rgba(255,255,255,0.35);
-  --text-mid:rgba(255,255,255,0.65);
-}
-html,body{
-  width:100%;height:100%;
-  background:var(--bg);color:#fff;
+:root{--bg:#080c14;--blue:#3b9eff;--blue-dim:#1a5fa8;--text-dim:rgba(255,255,255,0.35);--text-mid:rgba(255,255,255,0.65);}
+html,body{width:100%;height:100%;background:var(--bg);color:#fff;
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif;
-  overflow:hidden;
-}
+  overflow:hidden;touch-action:none;}
 .stage{width:100%;height:100dvh;position:relative;overflow:hidden;}
-.bottle-card{
-  position:absolute;inset:0;
-  display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  padding:28px 24px;
-  will-change:transform,opacity;
-}
-.slide-out-left{animation:soleft .55s cubic-bezier(.4,0,.2,1) forwards;}
-.slide-in-right{animation:siright .55s cubic-bezier(.34,1.2,.64,1) forwards;}
-@keyframes soleft{0%{transform:translateX(0) scale(1);opacity:1}40%{transform:translateX(-8%) scale(.94);opacity:.7}100%{transform:translateX(-115%) scale(.88);opacity:0}}
-@keyframes siright{0%{transform:translateX(115%) scale(.88);opacity:0}60%{transform:translateX(4%) scale(.97);opacity:1}100%{transform:translateX(0) scale(1);opacity:1}}
+.bottle-card{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 24px;will-change:transform,opacity;}
+.slide-out-left{animation:soleft .6s cubic-bezier(.4,0,.2,1) forwards;}
+.slide-in-right{animation:siright .6s cubic-bezier(.34,1.2,.64,1) forwards;}
+@keyframes soleft{0%{transform:translateX(0) scale(1);opacity:1}100%{transform:translateX(-115%) scale(.9);opacity:0}}
+@keyframes siright{0%{transform:translateX(115%) scale(.9);opacity:0}60%{transform:translateX(4%) scale(.98);opacity:1}100%{transform:translateX(0) scale(1);opacity:1}}
 .dots{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:7px;z-index:20;}
 .dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.18);transition:background .3s,transform .3s;}
 .dot.active{background:var(--blue);transform:scale(1.35);}
-.bottle-wrap{width:min(200px,52vw);flex-shrink:0;}
-.bottle-svg{width:100%;height:auto;display:block;transition:filter .8s ease;filter:drop-shadow(0 24px 44px rgba(0,0,0,.8));}
+.bottle-wrap{position:relative;width:min(200px,50vw);flex-shrink:0;}
+.bottle-svg{width:100%;height:auto;display:block;position:relative;z-index:2;pointer-events:none;transition:filter .8s ease;filter:drop-shadow(0 24px 44px rgba(0,0,0,.8));}
 .bottle-svg.glowing{animation:gpulse 2s ease-in-out infinite;}
 @keyframes gpulse{0%,100%{filter:drop-shadow(0 24px 44px rgba(0,0,0,.8)) drop-shadow(0 0 24px rgba(59,158,255,.4))}50%{filter:drop-shadow(0 24px 44px rgba(0,0,0,.8)) drop-shadow(0 0 52px rgba(59,158,255,.75)) drop-shadow(0 0 100px rgba(59,158,255,.28))}}
-.counter{margin-top:24px;text-align:center;}
-.lnum{
-  font-size:clamp(50px,12vw,66px);font-weight:700;
-  letter-spacing:-.04em;line-height:1;
-  color:#ffffff;
-}
-.lunit{font-size:clamp(20px,5vw,26px);font-weight:300;color:var(--text-dim);}
-.mlrow{margin-top:6px;font-size:clamp(11px,2.8vw,13px);color:var(--text-dim);letter-spacing:.13em;}
+.bottle-canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;}
+.counter{margin-top:20px;text-align:center;}
+.lnum{font-size:clamp(48px,11vw,62px);font-weight:700;letter-spacing:-.04em;line-height:1;color:#fff;}
+.lunit{font-size:clamp(18px,4.5vw,24px);font-weight:300;color:var(--text-dim);}
+.mlrow{margin-top:5px;font-size:clamp(11px,2.8vw,13px);color:var(--text-dim);letter-spacing:.13em;}
 .blabel{margin-top:3px;font-size:11px;color:rgba(255,255,255,.18);letter-spacing:.18em;text-transform:uppercase;}
-.ptrack{margin-top:16px;width:min(200px,52vw);height:3px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;}
-.pfill{height:100%;background:linear-gradient(90deg,var(--blue-dim),var(--blue));border-radius:3px;transition:width 1.5s cubic-bezier(.16,1,.3,1);width:0%;}
-.btn-row{margin-top:18px;display:flex;gap:10px;align-items:center;}
-.btn-ghost{
-  background:rgba(59,158,255,.06);border:.5px solid rgba(255,255,255,.09);
-  color:var(--text-mid);font-family:inherit;font-size:13px;letter-spacing:.05em;
-  padding:9px 20px;border-radius:100px;cursor:pointer;
-  transition:background .2s,border-color .2s,color .2s,transform .12s;
-}
+.ptrack{margin-top:14px;width:min(200px,50vw);height:3px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;}
+.pfill{height:100%;background:linear-gradient(90deg,var(--blue-dim),var(--blue));border-radius:3px;transition:width .8s cubic-bezier(.16,1,.3,1);width:0%;}
+.btn-row{margin-top:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;}
+.btn-ghost{background:rgba(59,158,255,.06);border:.5px solid rgba(255,255,255,.09);color:var(--text-mid);font-family:inherit;font-size:13px;letter-spacing:.05em;padding:9px 18px;border-radius:100px;cursor:pointer;transition:background .2s,border-color .2s,color .2s,transform .12s;}
 .btn-ghost:hover{background:rgba(59,158,255,.12);border-color:rgba(59,158,255,.28);color:#fff;}
-.btn-ghost:active{transform:scale(.96);}
+.btn-ghost:active{transform:scale(.94);}
 .btn-ghost:disabled{opacity:.2;pointer-events:none;}
-.btn-add{
-  background:linear-gradient(135deg,rgba(59,158,255,.14),rgba(59,158,255,.07));
-  border:.5px solid rgba(59,158,255,.32);color:var(--blue);
-  font-family:inherit;font-size:13px;letter-spacing:.06em;
-  padding:10px 24px;border-radius:100px;cursor:pointer;
-  transition:background .2s,transform .12s,opacity .35s;
-  opacity:0;pointer-events:none;
-}
-.btn-add.visible{opacity:1;pointer-events:auto;}
-.btn-add:active{transform:scale(.96);}
-.modal-bg{
-  position:fixed;inset:0;background:rgba(0,0,0,.7);
-  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  display:flex;align-items:center;justify-content:center;
-  z-index:100;opacity:0;pointer-events:none;transition:opacity .3s;
-}
+.btn-add{background:linear-gradient(135deg,rgba(59,158,255,.16),rgba(59,158,255,.07));border:.5px solid rgba(59,158,255,.35);color:var(--blue);font-family:inherit;font-size:13px;letter-spacing:.06em;padding:10px 22px;border-radius:100px;cursor:pointer;opacity:0;pointer-events:none;transform:translateY(8px) scale(.95);transition:opacity .4s cubic-bezier(.34,1.2,.64,1),transform .4s cubic-bezier(.34,1.2,.64,1);}
+.btn-add.visible{opacity:1;pointer-events:auto;transform:translateY(0) scale(1);}
+.btn-add:active{transform:scale(.94);}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .3s;}
 .modal-bg.show{opacity:1;pointer-events:auto;}
-.modal{
-  background:#0f1829;border:.5px solid rgba(255,255,255,.1);
-  border-radius:20px;padding:32px 28px;width:min(320px,88vw);text-align:center;
-  transform:scale(.92) translateY(16px);
-  transition:transform .35s cubic-bezier(.34,1.2,.64,1);
-}
+.modal{background:#0f1829;border:.5px solid rgba(255,255,255,.1);border-radius:20px;padding:32px 28px;width:min(320px,88vw);text-align:center;transform:scale(.92) translateY(16px);transition:transform .35s cubic-bezier(.34,1.2,.64,1);}
 .modal-bg.show .modal{transform:scale(1) translateY(0);}
 .modal h2{font-size:18px;font-weight:600;margin-bottom:8px;}
 .modal p{font-size:13px;color:var(--text-dim);margin-bottom:24px;line-height:1.5;}
-.modal input{
-  width:100%;background:rgba(255,255,255,.05);
-  border:.5px solid rgba(255,255,255,.12);color:#fff;
-  font-family:inherit;font-size:20px;text-align:center;
-  padding:14px;border-radius:12px;outline:none;margin-bottom:20px;
-  transition:border-color .2s;
-}
+.modal input{width:100%;background:rgba(255,255,255,.05);border:.5px solid rgba(255,255,255,.12);color:#fff;font-family:inherit;font-size:20px;text-align:center;padding:14px;border-radius:12px;outline:none;margin-bottom:20px;transition:border-color .2s;}
 .modal input:focus{border-color:rgba(59,158,255,.5);}
-.btn-confirm{
-  width:100%;background:var(--blue);color:#fff;
-  border:none;font-family:inherit;font-size:15px;font-weight:600;
-  padding:14px;border-radius:12px;cursor:pointer;
-  transition:opacity .2s,transform .12s;
-}
-.btn-confirm:hover{opacity:.88;}
-.btn-confirm:active{transform:scale(.98);}
-.toast{
-  position:fixed;bottom:46px;left:50%;
-  transform:translateX(-50%) translateY(14px);
-  background:rgba(13,20,36,.88);border:.5px solid rgba(59,158,255,.22);
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  color:rgba(255,255,255,.82);font-size:13px;letter-spacing:.06em;
-  padding:10px 24px;border-radius:100px;
-  opacity:0;transition:opacity .3s,transform .3s;
-  pointer-events:none;white-space:nowrap;z-index:50;
-}
+.btn-confirm{width:100%;background:var(--blue);color:#fff;border:none;font-family:inherit;font-size:15px;font-weight:600;padding:14px;border-radius:12px;cursor:pointer;transition:opacity .2s,transform .12s;}
+.btn-confirm:hover{opacity:.88;}.btn-confirm:active{transform:scale(.98);}
+.toast{position:fixed;bottom:46px;left:50%;transform:translateX(-50%) translateY(14px);background:rgba(13,20,36,.9);border:.5px solid rgba(59,158,255,.22);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:rgba(255,255,255,.85);font-size:13px;letter-spacing:.06em;padding:10px 24px;border-radius:100px;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;white-space:nowrap;z-index:50;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-.complete-bar{
-  position:fixed;top:0;left:0;right:0;text-align:center;
-  padding:14px;font-size:10px;letter-spacing:.2em;
-  color:var(--blue);opacity:0;transition:opacity .8s;pointer-events:none;z-index:30;
-}
+.complete-bar{position:fixed;top:0;left:0;right:0;text-align:center;padding:14px;font-size:10px;letter-spacing:.2em;color:var(--blue);opacity:0;transition:opacity .8s;pointer-events:none;z-index:30;}
 .complete-bar.show{opacity:1;}
 </style>
 </head>
@@ -127,239 +62,278 @@ html,body{
   <div class="modal">
     <h2>Nueva botella</h2>
     <p>Tamaño en mililitros</p>
-    <input type="number" id="sizeInput" placeholder="500" min="100" max="3000" inputmode="numeric"/>
+    <input type="number" id="sizeInput" placeholder="1000" min="100" max="3000" inputmode="numeric"/>
     <button class="btn-confirm" id="btnConfirm">Agregar</button>
   </div>
 </div>
 <div class="toast" id="toast"></div>
-<div class="complete-bar" id="completeBar">HIDRATACION COMPLETA</div>
+<div class="complete-bar" id="completeBar">BOTELLA COMPLETA</div>
 
 <script>
-const ML_PER_DRINK=20, GOAL_ML=2000, MAX_BOTTLES=3;
-const VW=200, VH=520;          // SVG viewBox dims
-const BODY_TOP=90, BODY_BOT=468; // fill area inside bottle body
-const BODY_H=BODY_BOT-BODY_TOP;
+/* ══════════════════════════════════════════
+   CONFIG
+══════════════════════════════════════════ */
+const ML_PER_DRINK = 50;
+const BOTTLE_GOAL  = 1000;
+const MAX_BOTTLES  = 3;
+const ML_PER_PARTICLE = 10; // each particle = 10ml
 
-/* ── tilt state (gyroscope) ──────────── */
-let tiltX=0;   // -1 ... +1  (left tilt negative, right positive)
-const TILT_DAMP=0.06;
-let lastTiltX=0;
+/* ══════════════════════════════════════════
+   BOTTLE SHAPE  (SVG viewBox 200×520)
+   We define the inner walls as line segments
+   for particle collision
+══════════════════════════════════════════ */
+const SVG_W=200, SVG_H=520;
 
-/* ── active water level per uid ─────── */
-const waterLevels={};  // uid -> 0..1 fraction
-
-/* ── wave canvas IDs map ─────────────── */
-// Each bottle has a <canvas> element where we draw the water
-
-/* ── bottle body path (viewBox 200x520) ─
-   Owala FreeSip profile:
-   - slim neck
-   - wide shoulder curve
-   - tall cylindrical body
-   - flat bottom with slight radius
-*/
-const BP=`M88,0 L88,10
-  C88,10 82,12 79,16 L75,24 L75,34
-  C58,40 38,62 34,92
-  L30,126 C28,138 27,150 27,162
-  L27,400
-  C27,438 60,468 100,468
-  L100,468
-  C140,468 173,438 173,400
-  L173,162 C173,150 172,138 170,126
-  L166,92
-  C162,62 142,40 125,34
-  L125,24 L121,16
-  C118,12 112,10 112,10
-  L112,0 Z`;
-
-function makeBottleSVG(uid){
-  return `<svg class="bottle-svg" id="svg-${uid}" viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <clipPath id="bc-${uid}"><path d="${BP}"/></clipPath>
-  </defs>
-
-  <!-- body dark bg -->
-  <path d="${BP}" fill="#0b1628"/>
-
-  <!-- water canvas via foreignObject so JS can draw smooth waves -->
-  <foreignObject x="0" y="0" width="${VW}" height="${VH}" clip-path="url(#bc-${uid})">
-    <canvas xmlns="http://www.w3.org/1999/xhtml"
-      id="wc-${uid}" width="${VW}" height="${VH}"
-      style="display:block;width:${VW}px;height:${VH}px;"></canvas>
-  </foreignObject>
-
-  <!-- bottle body outline -->
-  <path d="${BP}" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.2"/>
-
-  <!-- glass highlight left -->
-  <path d="M33,168 Q27,280 30,390" stroke="rgba(255,255,255,0.06)" stroke-width="8" fill="none" stroke-linecap="round" clip-path="url(#bc-${uid})"/>
-  <path d="M36,176 Q31,280 33,382" stroke="rgba(255,255,255,0.16)" stroke-width="1.3" fill="none" stroke-linecap="round" clip-path="url(#bc-${uid})"/>
-
-  <!-- upper glare overlay -->
-  <path d="M88,0 L88,10 C88,10 82,12 79,16 L75,24 L75,34 C58,40 38,62 34,92 L30,126 C28,138 27,150 27,162 L27,280 C55,270 74,266 88,266 L112,266 C126,266 145,270 173,280 L173,162 C173,150 172,138 170,126 L166,92 C162,62 142,40 125,34 L125,24 L121,16 C118,12 112,10 112,10 L112,0 Z" fill="rgba(255,255,255,0.022)" clip-path="url(#bc-${uid})"/>
-
-  <!-- ── CAP — clean Owala style ── -->
-  <!-- neck base -->
-  <rect x="74" y="0" width="52" height="14" rx="5" fill="#111d38"/>
-  <rect x="74" y="0" width="52" height="14" rx="5" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width=".5"/>
-  <!-- collar ring -->
-  <rect x="70" y="12" width="60" height="22" rx="4" fill="#0e1a30"/>
-  <rect x="70" y="12" width="60" height="22" rx="4" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width=".5"/>
-  <!-- main lid -->
-  <rect x="62" y="30" width="76" height="50" rx="10" fill="#131f3c"/>
-  <rect x="62" y="30" width="76" height="50" rx="10" fill="rgba(255,255,255,0.025)"/>
-  <rect x="62" y="30" width="76" height="50" rx="10" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width=".5"/>
-  <!-- lid top bevel -->
-  <rect x="74" y="26" width="52" height="12" rx="5" fill="#1c3060"/>
-  <rect x="74" y="26" width="52" height="12" rx="5" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width=".5"/>
-  <!-- push pill -->
-  <rect x="84" y="30" width="32" height="6" rx="3" fill="rgba(59,158,255,0.22)"/>
-  <!-- spout -->
-  <ellipse cx="100" cy="30" rx="16" ry="5" fill="#080f1e"/>
-  <ellipse cx="100" cy="30" rx="8" ry="3" fill="#050a14"/>
-  <!-- carry loop — clean arc, right side -->
-  <path d="M132,36 C152,36 164,46 164,62 C164,74 155,80 140,80" fill="none" stroke="#182848" stroke-width="9" stroke-linecap="round"/>
-  <path d="M132,36 C152,36 164,46 164,62 C164,74 155,80 140,80" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width=".8" stroke-linecap="round"/>
-  <!-- inner loop highlight -->
-  <path d="M132,36 C150,36 160,46 160,62 C160,72 153,77 140,78" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="4" stroke-linecap="round"/>
-  <!-- lid gloss -->
-  <path d="M67,34 Q100,40 133,34" stroke="rgba(255,255,255,0.12)" stroke-width="1" fill="none" stroke-linecap="round"/>
-  <!-- owala text -->
-  <text x="100" y="60" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="7" font-weight="600" fill="rgba(255,255,255,0.16)" letter-spacing="2.5">OWALA</text>
-  <!-- lid bottom shadow line -->
-  <line x1="63" y1="78" x2="137" y2="78" stroke="rgba(0,0,0,0.3)" stroke-width="1.5"/>
-
-  <!-- base shadow ellipse -->
-  <ellipse cx="100" cy="464" rx="42" ry="6" fill="rgba(0,0,0,0.3)"/>
-</svg>`;
+// Inner wall x boundaries at each y level (approximate Owala shape)
+function bottleWallX(y){
+  // Returns [leftX, rightX] inner wall at given y
+  if(y < 10)  return [88, 112];   // cap
+  if(y < 30)  return [76, 124];   // neck top
+  if(y < 60)  return [68, 132];   // neck bottom / shoulder start
+  if(y < 100) return [42, 158];   // shoulder curve
+  if(y < 140) return [32, 168];   // body top
+  if(y < 400) return [30, 170];   // main body cylinder
+  if(y < 440) return [32+((y-400)/40)*10, 168-((y-400)/40)*10]; // taper to base
+  return [42, 158];                // base
 }
 
-/* ── canvas water renderer ───────────── */
-function lerp(a,b,t){return a+(b-a)*t;}
+const FLOOR_Y = 460; // bottom of fillable area
 
-const canvasStates={}; // uid -> {targetY, currentY, phase1, phase2, rafId}
+/* ══════════════════════════════════════════
+   PHYSICS STATE per bottle
+══════════════════════════════════════════ */
+const simStates = {}; // uid -> {particles, rafId, canvas, ctx, ...}
 
-function startWaterRaf(uid){
-  const cs = canvasStates[uid];
-  if(!cs) return;
+// Gravity vector — updated by device motion
+let gx = 0;   // horizontal gravity component (screen coords)
+let gy = 1;   // vertical gravity component   (positive = down)
+
+function initSim(uid, currentMl){
+  const existing = simStates[uid];
+  if(existing && existing.rafId) cancelAnimationFrame(existing.rafId);
+
+  const particleCount = Math.round(currentMl / ML_PER_PARTICLE);
+  const particles = [];
+  for(let i=0;i<particleCount;i++){
+    const y = FLOOR_Y - 10 - Math.random()*Math.min(particleCount*3, 320);
+    const [lx,rx] = bottleWallX(y);
+    const cx = (lx+rx)/2;
+    const spread = (rx-lx)*0.35;
+    particles.push({
+      x: cx + (Math.random()-0.5)*spread*2,
+      y,
+      vx: (Math.random()-0.5)*0.5,
+      vy: Math.random()*0.5,
+      r: 7 + Math.random()*3
+    });
+  }
+  simStates[uid] = {particles, rafId:null};
+}
+
+/* ── SPAWN particles falling from top ── */
+function spawnDrops(uid, count){
+  const state = simStates[uid];
+  if(!state) return;
+  for(let i=0;i<count;i++){
+    setTimeout(()=>{
+      const [lx,rx] = bottleWallX(30);
+      const cx = (lx+rx)/2;
+      state.particles.push({
+        x: cx + (Math.random()-0.5)*20,
+        y: 30 + Math.random()*10,
+        vx: (Math.random()-0.5)*2,
+        vy: -1 + Math.random(),
+        r: 7 + Math.random()*3
+      });
+    }, i*60);
+  }
+}
+
+/* ══════════════════════════════════════════
+   SIMULATION LOOP
+══════════════════════════════════════════ */
+const DAMPING   = 0.72;
+const FRICTION  = 0.88;
+const GRAVITY   = 0.55;
+const REPULSE   = 0.35;
+
+function stepSim(uid){
+  const state = simStates[uid];
+  if(!state) return;
+  const P = state.particles;
+  const N = P.length;
+
+  for(let i=0;i<N;i++){
+    const p = P[i];
+
+    // Gravity
+    p.vx += gx * GRAVITY;
+    p.vy += gy * GRAVITY;
+
+    // Integrate
+    p.x += p.vx;
+    p.y += p.vy;
+
+    // Floor
+    if(p.y + p.r > FLOOR_Y){
+      p.y = FLOOR_Y - p.r;
+      p.vy *= -DAMPING;
+      p.vx *= FRICTION;
+    }
+
+    // Ceiling (top of bottle)
+    if(p.y - p.r < 15){
+      p.y = 15 + p.r;
+      p.vy *= -DAMPING;
+    }
+
+    // Side walls
+    const [lx,rx] = bottleWallX(p.y);
+    if(p.x - p.r < lx){
+      p.x = lx + p.r;
+      p.vx *= -DAMPING;
+    }
+    if(p.x + p.r > rx){
+      p.x = rx - p.r;
+      p.vx *= -DAMPING;
+    }
+
+    // Velocity cap
+    const spd = Math.sqrt(p.vx*p.vx+p.vy*p.vy);
+    if(spd > 12){ p.vx=(p.vx/spd)*12; p.vy=(p.vy/spd)*12; }
+  }
+
+  // Particle-particle repulsion (spatial grid for perf)
+  for(let i=0;i<N;i++){
+    for(let j=i+1;j<N;j++){
+      const a=P[i], b=P[j];
+      const dx=b.x-a.x, dy=b.y-a.y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      const minD=a.r+b.r-2;
+      if(dist<minD && dist>0.01){
+        const overlap=(minD-dist)/dist;
+        const fx=dx*overlap*REPULSE;
+        const fy=dy*overlap*REPULSE;
+        a.vx-=fx; a.vy-=fy;
+        b.vx+=fx; b.vy+=fy;
+      }
+    }
+  }
+}
+
+/* ══════════════════════════════════════════
+   RENDER LOOP
+══════════════════════════════════════════ */
+function startRaf(uid){
+  const state = simStates[uid];
+  if(!state) return;
 
   function frame(){
+    // get canvas from DOM (inside bottle-wrap)
     const cvs = document.getElementById(`wc-${uid}`);
-    if(!cvs){ cs.rafId=null; return; }
+    if(!cvs){ state.rafId=null; return; }
     const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
 
-    // smooth water level
-    cs.currentY = lerp(cs.currentY, cs.targetY, 0.04);
+    stepSim(uid);
 
-    // smooth tilt
-    cs.tiltPhase = lerp(cs.tiltPhase||0, tiltX*18, 0.08);
-
-    // advance wave phases
-    cs.phase1 = (cs.phase1||0) + 0.018;
-    cs.phase2 = (cs.phase2||0) + 0.013;
-
-    const W=VW, H=VH;
     ctx.clearRect(0,0,W,H);
 
-    const y = cs.currentY;
-    if(y >= H){ cs.rafId=requestAnimationFrame(frame); return; } // empty
+    const P = state.particles;
+    if(P.length === 0){ state.rafId=requestAnimationFrame(frame); return; }
 
-    // wave surface path using quadratic curves for smooth look
-    function drawWaterShape(phaseOff, amp, color){
+    // Draw metaballs / blobs using a blur + threshold trick
+    // Render to offscreen then composite
+    ctx.save();
+
+    // Draw each particle as soft glowing circle
+    for(const p of P){
+      const grad = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*1.6);
+      grad.addColorStop(0,   'rgba(59,158,255,0.95)');
+      grad.addColorStop(0.5, 'rgba(28,100,210,0.7)');
+      grad.addColorStop(1,   'rgba(10,50,140,0)');
       ctx.beginPath();
-      const waveY = y + cs.tiltPhase; // tilt shifts apparent surface
-      ctx.moveTo(0, H);
-      ctx.lineTo(0, waveY);
-
-      // smooth sine wave using bezier segments
-      const segs=12;
-      const segW=W/segs;
-      for(let i=0;i<segs;i++){
-        const x0=i*segW;
-        const x1=(i+1)*segW;
-        const xm=(x0+x1)/2;
-        const y0=waveY - amp*Math.sin(cs.phase1*2+phaseOff + i*(Math.PI*2/segs));
-        const y1=waveY - amp*Math.sin(cs.phase1*2+phaseOff + (i+1)*(Math.PI*2/segs));
-        const ym=waveY - amp*Math.sin(cs.phase1*2+phaseOff + (i+0.5)*(Math.PI*2/segs));
-        ctx.quadraticCurveTo(xm, ym, x1, y1);
-      }
-      ctx.lineTo(W, H);
-      ctx.closePath();
-      ctx.fillStyle=color;
+      ctx.arc(p.x, p.y, p.r*1.6, 0, Math.PI*2);
+      ctx.fillStyle = grad;
       ctx.fill();
     }
 
-    // deep base
-    ctx.fillStyle='#0a3272';
-    ctx.fillRect(0, y + cs.tiltPhase + 6, W, H);
-
-    // wave layers (back to front)
-    drawWaterShape(Math.PI*0.3, 7, 'rgba(20,90,190,0.95)');
-    drawWaterShape(Math.PI*0.8, 5, 'rgba(28,110,210,0.85)');
-    drawWaterShape(0, 4, 'rgba(59,158,255,0.55)');
-
-    // surface shimmer line
-    ctx.beginPath();
-    const sy = y + cs.tiltPhase + 2;
-    ctx.moveTo(10, sy - 3*Math.sin(cs.phase2*3));
-    for(let x=10;x<=W-10;x+=4){
-      ctx.lineTo(x, sy - 3*Math.sin(cs.phase2*3 + x*0.08));
+    // Overlay solid cores for metaball feel
+    ctx.globalCompositeOperation = 'source-over';
+    for(const p of P){
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r*0.7, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(79,170,255,0.5)';
+      ctx.fill();
     }
-    ctx.strokeStyle='rgba(160,210,255,0.18)';
-    ctx.lineWidth=2.5;
-    ctx.stroke();
 
-    cs.rafId=requestAnimationFrame(frame);
+    // Highlight glints on particles
+    for(const p of P){
+      ctx.beginPath();
+      ctx.arc(p.x - p.r*0.25, p.y - p.r*0.25, p.r*0.22, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.fill();
+    }
+
+    ctx.restore();
+
+    state.rafId = requestAnimationFrame(frame);
   }
-  if(cs.rafId) cancelAnimationFrame(cs.rafId);
-  cs.rafId=requestAnimationFrame(frame);
+
+  if(state.rafId) cancelAnimationFrame(state.rafId);
+  state.rafId = requestAnimationFrame(frame);
 }
 
-function setWaterTarget(uid, fraction){
-  const y = BODY_TOP + (1-fraction)*BODY_H;
-  if(!canvasStates[uid]){
-    canvasStates[uid]={targetY:y, currentY:fraction===0?VH:y, phase1:0, phase2:0, tiltPhase:0, rafId:null};
-  } else {
-    canvasStates[uid].targetY=y;
-  }
-}
-
-/* ── tilt via DeviceMotion ───────────── */
+/* ══════════════════════════════════════════
+   DEVICE MOTION / TILT
+══════════════════════════════════════════ */
 function initTilt(){
+  function handleMotion(e){
+    const acc = e.accelerationIncludingGravity;
+    if(!acc || acc.x==null) return;
+    // ax → horizontal, ay → vertical (down = positive in our coord)
+    gx =  acc.x / 9.8;   // -1 to +1
+    gy = -acc.y / 9.8;   // invert: phone held up = gravity pulls down
+    // clamp
+    gx = Math.max(-1.5, Math.min(1.5, gx));
+    gy = Math.max(-1.5, Math.min(1.5, gy));
+  }
+
   if(window.DeviceMotionEvent){
-    // iOS 13+ needs permission
     if(typeof DeviceMotionEvent.requestPermission==='function'){
-      // request on first user gesture
-      document.addEventListener('click',function ask(){
-        DeviceMotionEvent.requestPermission().then(r=>{
-          if(r==='granted') listenMotion();
-        }).catch(()=>{});
+      document.addEventListener('click', function ask(){
+        DeviceMotionEvent.requestPermission()
+          .then(r=>{ if(r==='granted') window.addEventListener('devicemotion',handleMotion); })
+          .catch(()=>{});
         document.removeEventListener('click',ask);
       },{once:true});
     } else {
-      listenMotion();
+      window.addEventListener('devicemotion', handleMotion);
     }
   }
-  // also mouse/touch tilt for desktop preview
-  document.addEventListener('mousemove',e=>{
+
+  // Desktop mouse tilt preview
+  window.addEventListener('mousemove', e=>{
     const cx=window.innerWidth/2;
-    tiltX=Math.max(-1,Math.min(1,(e.clientX-cx)/(cx)));
+    gx = ((e.clientX-cx)/cx)*1.2;
+  });
+
+  // Desktop shake on click for fun
+  window.addEventListener('dblclick', ()=>{
+    Object.values(simStates).forEach(s=>{
+      s.particles.forEach(p=>{
+        p.vx += (Math.random()-0.5)*15;
+        p.vy += (Math.random()-0.5)*15;
+      });
+    });
   });
 }
 
-function listenMotion(){
-  window.addEventListener('devicemotion',e=>{
-    const acc=e.accelerationIncludingGravity;
-    if(acc && acc.x!=null){
-      // x axis: positive=right tilt, negative=left
-      tiltX=Math.max(-1,Math.min(1, acc.x/6));
-    }
-  });
-}
-
-/* ── storage ─────────────────────────── */
-function todayKey(id){const d=new Date();return `awa-b${id}-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;}
+/* ══════════════════════════════════════════
+   STORAGE
+══════════════════════════════════════════ */
+function todayKey(id){const d=new Date();return`awa-b${id}-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;}
 function getMl(id){return parseInt(localStorage.getItem(todayKey(id))||'0');}
 function setMl(id,ml){localStorage.setItem(todayKey(id),Math.max(0,ml));}
 function getSaved(){return JSON.parse(localStorage.getItem('awa-bottles')||'[]');}
@@ -367,26 +341,96 @@ function saveBts(){localStorage.setItem('awa-bottles',JSON.stringify(bottles));}
 
 let bottles=[], current=0, transitioning=false;
 
-/* ── render UI state ──────────────────── */
-function renderBottle(uid, ml, immediate){
-  const frac=Math.min(ml/GOAL_ML,1);
-  setWaterTarget(uid, frac);
-  if(immediate && canvasStates[uid]) canvasStates[uid].currentY=BODY_TOP+(1-frac)*BODY_H;
+/* ══════════════════════════════════════════
+   SVG BOTTLE (shell only — canvas does water)
+══════════════════════════════════════════ */
+const BP=`M88,0 L88,10 C88,10 82,12 79,16 L75,24 L75,34
+  C58,40 38,62 34,92 L30,126 C28,138 27,150 27,162
+  L27,400 C27,438 60,468 100,468 C140,468 173,438 173,400
+  L173,162 C173,150 172,138 170,126 L166,92
+  C162,62 142,40 125,34 L125,24 L121,16
+  C118,12 112,10 112,10 L112,0 Z`;
 
-  const lnum=document.getElementById(`lnum-${uid}`);
-  const mlrow=document.getElementById(`mlrow-${uid}`);
-  const prog=document.getElementById(`prog-${uid}`);
-  const undo=document.getElementById(`undo-${uid}`);
+function makeBottleSVG(uid){
+  return `
+<div class="bottle-wrap" id="bw-${uid}">
+  <canvas class="bottle-canvas" id="wc-${uid}" width="${SVG_W}" height="${SVG_H}"></canvas>
+  <svg class="bottle-svg" id="svg-${uid}" viewBox="0 0 ${SVG_W} ${SVG_H}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <clipPath id="bc-${uid}"><path d="${BP}"/></clipPath>
+    </defs>
+    <!-- dark body bg -->
+    <path d="${BP}" fill="#0b1628"/>
+    <!-- cutout so canvas shows through body clip -->
+    <rect x="0" y="0" width="${SVG_W}" height="${SVG_H}" fill="none" clip-path="url(#bc-${uid})"/>
+    <!-- body outline -->
+    <path d="${BP}" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.5"/>
+    <!-- glass highlight left -->
+    <path d="M33,168 Q27,280 30,390" stroke="rgba(255,255,255,0.06)" stroke-width="8" fill="none" stroke-linecap="round" clip-path="url(#bc-${uid})"/>
+    <path d="M36,176 Q31,280 33,382" stroke="rgba(255,255,255,0.16)" stroke-width="1.3" fill="none" stroke-linecap="round" clip-path="url(#bc-${uid})"/>
+    <!-- upper glare -->
+    <path d="M88,0 L88,10 C88,10 82,12 79,16 L75,24 L75,34 C58,40 38,62 34,92 L30,126 C28,138 27,150 27,162 L27,280 C55,270 74,266 88,266 L112,266 C126,266 145,270 173,280 L173,162 C173,150 172,138 170,126 L166,92 C162,62 142,40 125,34 L125,24 L121,16 C118,12 112,10 112,10 L112,0 Z" fill="rgba(255,255,255,0.025)" clip-path="url(#bc-${uid})"/>
+    <!-- CAP -->
+    <rect x="74" y="0" width="52" height="14" rx="5" fill="#111d38"/>
+    <rect x="74" y="0" width="52" height="14" rx="5" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width=".5"/>
+    <rect x="70" y="12" width="60" height="22" rx="4" fill="#0e1a30"/>
+    <rect x="70" y="12" width="60" height="22" rx="4" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width=".5"/>
+    <rect x="62" y="30" width="76" height="50" rx="10" fill="#131f3c"/>
+    <rect x="62" y="30" width="76" height="50" rx="10" fill="rgba(255,255,255,0.025)"/>
+    <rect x="62" y="30" width="76" height="50" rx="10" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width=".5"/>
+    <rect x="74" y="26" width="52" height="12" rx="5" fill="#1c3060"/>
+    <rect x="84" y="30" width="32" height="6" rx="3" fill="rgba(59,158,255,0.22)"/>
+    <ellipse cx="100" cy="30" rx="16" ry="5" fill="#080f1e"/>
+    <ellipse cx="100" cy="30" rx="8" ry="3" fill="#050a14"/>
+    <path d="M132,36 C152,36 164,46 164,62 C164,74 155,80 140,80" fill="none" stroke="#182848" stroke-width="9" stroke-linecap="round"/>
+    <path d="M132,36 C152,36 164,46 164,62 C164,74 155,80 140,80" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width=".8" stroke-linecap="round"/>
+    <path d="M67,34 Q100,40 133,34" stroke="rgba(255,255,255,0.12)" stroke-width="1" fill="none" stroke-linecap="round"/>
+    <text x="100" y="60" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="7" font-weight="600" fill="rgba(255,255,255,0.16)" letter-spacing="2.5">OWALA</text>
+    <line x1="63" y1="78" x2="137" y2="78" stroke="rgba(0,0,0,0.3)" stroke-width="1.5"/>
+    <ellipse cx="100" cy="464" rx="42" ry="6" fill="rgba(0,0,0,0.3)"/>
+  </svg>
+</div>`;
+}
+
+/* ══════════════════════════════════════════
+   CARD HTML
+══════════════════════════════════════════ */
+function makeCardHTML(b,idx){
+  const uid=b.id;
+  return `<div class="bottle-card" id="card-${uid}" data-idx="${idx}">
+    ${makeBottleSVG(uid)}
+    <div class="counter">
+      <div style="display:flex;align-items:baseline;justify-content:center;gap:6px;">
+        <span class="lnum" id="lnum-${uid}">0.0</span>
+        <span class="lunit">L</span>
+      </div>
+      <div class="mlrow" id="mlrow-${uid}">0 ML / ${BOTTLE_GOAL} ML</div>
+      <div class="blabel">${b.sizeMl} ML POR BOTELLA</div>
+    </div>
+    <div class="ptrack"><div class="pfill" id="prog-${uid}"></div></div>
+    <div class="btn-row">
+      <button class="btn-ghost" id="undo-${uid}" disabled>- ${ML_PER_DRINK} ML</button>
+      <button class="btn-ghost" id="add50-${uid}">+ ${ML_PER_DRINK} ML</button>
+      <button class="btn-add"   id="addbottle-${uid}">+ Botella</button>
+    </div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════
+   RENDER UI STATE
+══════════════════════════════════════════ */
+function renderBottle(uid, ml){
+  const frac=Math.min(ml/BOTTLE_GOAL,1);
+  if(document.getElementById(`lnum-${uid}`)){
+    document.getElementById(`lnum-${uid}`).textContent=(ml/1000).toFixed(1);
+    document.getElementById(`mlrow-${uid}`).textContent=`${ml} ML / ${BOTTLE_GOAL} ML`;
+    document.getElementById(`prog-${uid}`).style.width=`${frac*100}%`;
+    document.getElementById(`undo-${uid}`).disabled=ml===0;
+  }
   const svg=document.getElementById(`svg-${uid}`);
-  const addB=document.getElementById(`add-${uid}`);
+  const addB=document.getElementById(`addbottle-${uid}`);
   const bar=document.getElementById('completeBar');
-
-  if(lnum) lnum.textContent=(ml/1000).toFixed(1);
-  if(mlrow) mlrow.textContent=`${ml} ML / ${GOAL_ML} ML`;
-  if(prog) prog.style.width=`${frac*100}%`;
-  if(undo) undo.disabled=ml===0;
-
-  if(ml>=GOAL_ML){
+  if(ml>=BOTTLE_GOAL){
     svg&&svg.classList.add('glowing');
     bar.classList.add('show');
     if(addB&&bottles.length<MAX_BOTTLES) addB.classList.add('visible');
@@ -397,135 +441,134 @@ function renderBottle(uid, ml, immediate){
   }
 }
 
-/* ── card HTML ───────────────────────── */
-function makeCardHTML(b,idx){
-  const uid=b.id;
-  return `<div class="bottle-card" id="card-${uid}" data-idx="${idx}">
-    <div class="bottle-wrap">${makeBottleSVG(uid)}</div>
-    <div class="counter">
-      <div style="display:flex;align-items:baseline;justify-content:center;gap:6px;">
-        <span class="lnum" id="lnum-${uid}">0.0</span>
-        <span class="lunit">L</span>
-      </div>
-      <div class="mlrow" id="mlrow-${uid}">0 ML / ${GOAL_ML} ML</div>
-      <div class="blabel">${b.sizeMl} ML POR BOTELLA</div>
-    </div>
-    <div class="ptrack"><div class="pfill" id="prog-${uid}"></div></div>
-    <div class="btn-row">
-      <button class="btn-ghost" id="undo-${uid}" disabled>- ${ML_PER_DRINK} ML</button>
-      <button class="btn-add" id="add-${uid}">+ Botella</button>
-    </div>
-  </div>`;
-}
-
-/* ── dots ────────────────────────────── */
+/* ══════════════════════════════════════════
+   DOTS
+══════════════════════════════════════════ */
 function renderDots(){
   document.getElementById('dots').innerHTML=
     bottles.map((_,i)=>`<div class="dot${i===current?' active':''}"></div>`).join('');
 }
 
-/* ── drink / undo ────────────────────── */
-function drinkBottle(idx){
+/* ══════════════════════════════════════════
+   DRINK / UNDO
+══════════════════════════════════════════ */
+function addMl(idx, amount){
   const b=bottles[idx]; if(!b)return;
   let ml=getMl(b.id);
-  if(ml>=GOAL_ML){showToast('Meta ya completada');return;}
-  ml+=ML_PER_DRINK; setMl(b.id,ml); renderBottle(b.id,ml,false);
-  if(ml>=GOAL_ML) setTimeout(()=>showToast('Hidratacion completa'),600);
+  if(ml>=BOTTLE_GOAL){showToast('Botella completa');return;}
+  ml=Math.min(BOTTLE_GOAL, ml+amount);
+  setMl(b.id,ml);
+  renderBottle(b.id,ml);
+  // spawn drops from top
+  const drops=Math.round(amount/ML_PER_PARTICLE);
+  spawnDrops(b.id, drops);
+  if(ml>=BOTTLE_GOAL) setTimeout(()=>showToast('Botella llena — agrega la siguiente'),700);
 }
-function undoBottle(idx){
+
+function removeMl(idx){
   const b=bottles[idx]; if(!b)return;
   let ml=getMl(b.id); if(ml<=0)return;
-  ml=Math.max(0,ml-ML_PER_DRINK); setMl(b.id,ml); renderBottle(b.id,ml,false);
+  const prev=ml;
+  ml=Math.max(0,ml-ML_PER_DRINK);
+  setMl(b.id,ml);
+  renderBottle(b.id,ml);
+  // remove particles
+  const state=simStates[b.id];
+  if(state){
+    const toRemove=Math.round((prev-ml)/ML_PER_PARTICLE);
+    state.particles.splice(-toRemove, toRemove);
+  }
   showToast(`-${ML_PER_DRINK} ML`);
 }
 
-/* ── add bottle ──────────────────────── */
-function openModal(){document.getElementById('sizeInput').value='';document.getElementById('modalBg').classList.add('show');setTimeout(()=>document.getElementById('sizeInput').focus(),350);}
+/* ══════════════════════════════════════════
+   ADD BOTTLE with SLIDE ANIMATION
+══════════════════════════════════════════ */
+function openModal(){document.getElementById('sizeInput').value='1000';document.getElementById('modalBg').classList.add('show');setTimeout(()=>document.getElementById('sizeInput').focus(),350);}
 function closeModal(){document.getElementById('modalBg').classList.remove('show');}
 function confirmAdd(){
   const val=parseInt(document.getElementById('sizeInput').value);
   if(!val||val<50||val>5000){showToast('Tamaño inválido');return;}
-  closeModal(); addBottle(val);
+  closeModal();addBottle(val);
 }
 function addBottle(sizeMl){
   if(transitioning||bottles.length>=MAX_BOTTLES)return;
   transitioning=true;
   const nb={id:Date.now(),sizeMl};
-  bottles.push(nb); saveBts();
+  bottles.push(nb);saveBts();
   const stage=document.getElementById('stage');
   const oldCard=stage.querySelector('.bottle-card');
   const tmp=document.createElement('div');
   tmp.innerHTML=makeCardHTML(nb,bottles.length-1);
   const newCard=tmp.firstChild;
-  newCard.style.cssText='position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px;transform:translateX(115%);opacity:0;';
   stage.appendChild(newCard);
+  initSim(nb.id,0);
+  startRaf(nb.id);
+  renderBottle(nb.id,0);
   wireCard(nb,bottles.length-1);
-  setWaterTarget(nb.id,0);
-  if(!canvasStates[nb.id]) canvasStates[nb.id]={targetY:BODY_BOT,currentY:VH,phase1:Math.random()*Math.PI*2,phase2:Math.random()*Math.PI*2,tiltPhase:0,rafId:null};
-  startWaterRaf(nb.id);
-  renderBottle(nb.id,0,true);
   requestAnimationFrame(()=>{
     if(oldCard){oldCard.classList.add('slide-out-left');oldCard.addEventListener('animationend',()=>oldCard.remove(),{once:true});}
-    newCard.style.transform='';newCard.style.opacity='';
     newCard.classList.add('slide-in-right');
     newCard.addEventListener('animationend',()=>{
       newCard.classList.remove('slide-in-right');
-      current=bottles.length-1; renderDots(); transitioning=false;
+      current=bottles.length-1;renderDots();transitioning=false;
     },{once:true});
   });
 }
 function wireCard(b,idx){
   const u=document.getElementById(`undo-${b.id}`);
-  const a=document.getElementById(`add-${b.id}`);
-  if(u)u.addEventListener('click',()=>undoBottle(idx));
-  if(a)a.addEventListener('click',openModal);
+  const a=document.getElementById(`add50-${b.id}`);
+  const ab=document.getElementById(`addbottle-${b.id}`);
+  if(u) u.addEventListener('click',()=>removeMl(idx));
+  if(a) a.addEventListener('click',()=>addMl(idx,ML_PER_DRINK));
+  if(ab) ab.addEventListener('click',openModal);
 }
 
-/* ── init ────────────────────────────── */
+/* ══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════ */
 function initStage(){
   const saved=getSaved();
-  bottles=saved.length?saved:[{id:1,sizeMl:500}];
-  if(!saved.length) saveBts();
+  bottles=saved.length?saved:[{id:1,sizeMl:1000}];
+  if(!saved.length)saveBts();
   const stage=document.getElementById('stage');
   stage.innerHTML='';
   const b=bottles[current];
   stage.innerHTML=makeCardHTML(b,current);
   wireCard(b,current);
   const ml=getMl(b.id);
-  const frac=Math.min(ml/GOAL_ML,1);
-  canvasStates[b.id]={
-    targetY:BODY_TOP+(1-frac)*BODY_H,
-    currentY:frac===0?VH:BODY_TOP+(1-frac)*BODY_H,
-    phase1:0,phase2:0,tiltPhase:0,rafId:null
-  };
-  startWaterRaf(b.id);
-  renderBottle(b.id,ml,true);
+  initSim(b.id,ml);
+  startRaf(b.id);
+  renderBottle(b.id,ml);
   renderDots();
 }
 
-/* ── toast ───────────────────────────── */
+/* ══════════════════════════════════════════
+   TOAST / URL / RESET
+══════════════════════════════════════════ */
 let tt;
-function showToast(msg){
-  const el=document.getElementById('toast');
-  el.textContent=msg;el.classList.add('show');
-  clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),2400);
-}
+function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),2600);}
 
-/* ── URL ─────────────────────────────── */
 function handleURL(){
   const p=new URLSearchParams(location.search);
   if(p.get('action')==='drink'){
     history.replaceState({},'',location.pathname);
     const idx=Math.min((parseInt(p.get('bottle')||'1')-1),bottles.length-1);
-    setTimeout(()=>drinkBottle(idx),400);
+    setTimeout(()=>addMl(idx,ML_PER_DRINK),500);
   }
 }
 
-/* ── midnight reset ──────────────────── */
 function schedReset(){
   const now=new Date();
   const ms=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1)-now;
-  setTimeout(()=>{bottles.forEach(b=>{setMl(b.id,0);renderBottle(b.id,0,false);});schedReset();},ms);
+  setTimeout(()=>{
+    bottles.forEach(b=>{
+      setMl(b.id,0);
+      renderBottle(b.id,0);
+      if(simStates[b.id]) simStates[b.id].particles=[];
+    });
+    schedReset();
+  },ms);
 }
 
 document.getElementById('btnConfirm').addEventListener('click',confirmAdd);
