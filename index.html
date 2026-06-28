@@ -56,12 +56,30 @@ html,body{width:100%;height:100%;background:var(--bg);color:#fff;
 .blabel{margin-top:3px;font-size:11px;color:rgba(255,255,255,.18);letter-spacing:.18em;text-transform:uppercase;}
 .ptrack{margin-top:14px;width:min(200px,50vw);height:3px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;}
 .pfill{height:100%;background:linear-gradient(90deg,var(--blue-dim),var(--blue));border-radius:3px;transition:width .8s cubic-bezier(.16,1,.3,1);width:0%;}
-.btn-row{margin-top:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;}
-.btn-ghost{background:rgba(59,158,255,.06);border:.5px solid rgba(255,255,255,.09);color:var(--text-mid);font-family:inherit;font-size:13px;letter-spacing:.05em;padding:9px 18px;border-radius:100px;cursor:pointer;transition:background .2s,border-color .2s,color .2s,transform .12s;}
-.btn-ghost:hover{background:rgba(59,158,255,.12);border-color:rgba(59,158,255,.28);color:#fff;}
-.btn-ghost:active{transform:scale(.94);}
-.btn-ghost:disabled{opacity:.2;pointer-events:none;}
-.btn-add{background:linear-gradient(135deg,rgba(59,158,255,.16),rgba(59,158,255,.07));border:.5px solid rgba(59,158,255,.35);color:var(--blue);font-family:inherit;font-size:13px;letter-spacing:.06em;padding:10px 22px;border-radius:100px;cursor:pointer;opacity:0;pointer-events:none;transform:translateY(8px) scale(.95);transition:opacity .4s cubic-bezier(.34,1.2,.64,1),transform .4s cubic-bezier(.34,1.2,.64,1);}
+.btn-row{margin-top:20px;display:flex;gap:12px;align-items:center;justify-content:center;}
+/* ±50ml buttons — two big pill icons */
+.btn-ml{
+  position:relative;width:64px;height:64px;border-radius:50%;border:none;
+  cursor:pointer;font-family:inherit;font-weight:700;font-size:11px;
+  letter-spacing:.06em;color:#fff;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  transition:transform .15s cubic-bezier(.34,1.4,.64,1),opacity .2s;
+}
+.btn-ml:active{transform:scale(.88);}
+.btn-ml:disabled{opacity:.2;pointer-events:none;}
+.btn-minus{background:linear-gradient(145deg,#0d2246,#0a1830);box-shadow:0 0 0 1px rgba(255,255,255,.08),0 8px 24px rgba(0,0,0,.5);}
+.btn-plus{background:linear-gradient(145deg,#1a5fa8,#0f3d7a);box-shadow:0 0 0 1px rgba(59,158,255,.25),0 8px 24px rgba(10,60,160,.5);}
+.btn-ml-icon{font-size:20px;font-weight:300;line-height:1;}
+.btn-ml-label{font-size:9px;opacity:.65;letter-spacing:.1em;}
+.btn-add{
+  background:linear-gradient(135deg,rgba(59,158,255,.14),rgba(59,158,255,.06));
+  border:.5px solid rgba(59,158,255,.3);color:var(--blue);
+  font-family:inherit;font-size:12px;letter-spacing:.08em;
+  padding:10px 20px;border-radius:100px;cursor:pointer;
+  opacity:0;pointer-events:none;
+  transform:translateY(8px) scale(.95);
+  transition:opacity .4s cubic-bezier(.34,1.2,.64,1),transform .4s cubic-bezier(.34,1.2,.64,1);
+}
 .btn-add.visible{opacity:1;pointer-events:auto;transform:translateY(0) scale(1);}
 .btn-add:active{transform:scale(.94);}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .3s;}
@@ -244,81 +262,132 @@ function stepSim(uid){
 ═══════════════════════════════════ */
 const bottlePath = makeBottlePath();
 
+/* Offscreen canvas for metaball blur+threshold trick */
+const offscreens = {};
+
+function getOffscreen(uid, w, h){
+  if(!offscreens[uid]||offscreens[uid].width!==w||offscreens[uid].height!==h){
+    const oc = document.createElement('canvas');
+    oc.width=w; oc.height=h;
+    offscreens[uid]=oc;
+  }
+  return offscreens[uid];
+}
+
+function clipBottle(ctx){
+  ctx.beginPath();
+  ctx.moveTo(88,0);
+  ctx.bezierCurveTo(88,10,82,12,79,16);
+  ctx.lineTo(75,24);ctx.lineTo(75,34);
+  ctx.bezierCurveTo(58,40,38,62,34,92);
+  ctx.lineTo(30,126);
+  ctx.bezierCurveTo(28,138,27,150,27,162);
+  ctx.lineTo(27,400);
+  ctx.bezierCurveTo(27,438,60,468,100,468);
+  ctx.bezierCurveTo(140,468,173,438,173,400);
+  ctx.lineTo(173,162);
+  ctx.bezierCurveTo(173,150,172,138,170,126);
+  ctx.lineTo(166,92);
+  ctx.bezierCurveTo(162,62,142,40,125,34);
+  ctx.lineTo(125,24);ctx.lineTo(121,16);
+  ctx.bezierCurveTo(118,12,112,10,112,10);
+  ctx.lineTo(112,0);
+  ctx.closePath();
+}
+
 function renderSim(uid){
   const sim=sims[uid]; if(!sim)return;
   const cvs=document.getElementById(`wc-${uid}`); if(!cvs)return;
   const ctx=cvs.getContext('2d');
 
-  // Scale canvas to actual display size
-  const displayW=cvs.offsetWidth, displayH=cvs.offsetHeight;
-  if(cvs.width!==displayW||cvs.height!==displayH){
-    cvs.width=displayW; cvs.height=displayH;
-  }
-  const scaleX=displayW/CW, scaleY=displayH/CH;
+  const displayW=cvs.offsetWidth||cvs.clientWidth||200;
+  const displayH=cvs.offsetHeight||cvs.clientHeight||520;
+  if(cvs.width!==displayW||cvs.height!==displayH){cvs.width=displayW;cvs.height=displayH;}
+  const sx=displayW/CW, sy=displayH/CH;
 
-  ctx.clearRect(0,0,cvs.width,cvs.height);
+  ctx.clearRect(0,0,displayW,displayH);
 
   const P=sim.particles;
-  if(P.length===0) return;
 
   ctx.save();
-  // Scale to match SVG viewBox
-  ctx.scale(scaleX, scaleY);
-
-  // ── CLIP to bottle shape ──────────
-  ctx.beginPath();
-  ctx.moveTo(88,0);
-  ctx.bezierCurveTo(88,10, 82,12, 79,16);
-  ctx.lineTo(79,16); ctx.lineTo(75,24); ctx.lineTo(75,34);
-  ctx.bezierCurveTo(58,40, 38,62, 34,92);
-  ctx.lineTo(30,126);
-  ctx.bezierCurveTo(28,138, 27,150, 27,162);
-  ctx.lineTo(27,400);
-  ctx.bezierCurveTo(27,438, 60,468, 100,468);
-  ctx.bezierCurveTo(140,468, 173,438, 173,400);
-  ctx.lineTo(173,162);
-  ctx.bezierCurveTo(173,150, 172,138, 170,126);
-  ctx.lineTo(166,92);
-  ctx.bezierCurveTo(162,62, 142,40, 125,34);
-  ctx.lineTo(125,24); ctx.lineTo(121,16);
-  ctx.bezierCurveTo(118,12, 112,10, 112,10);
-  ctx.lineTo(112,0);
-  ctx.closePath();
+  ctx.scale(sx,sy);
+  clipBottle(ctx);
   ctx.clip();
+  ctx.fillStyle='#0a1422';
+  ctx.fillRect(0,0,CW,CH);
+  ctx.restore();
 
-  // ── dark bottle interior bg ───────
-  ctx.fillStyle='#0b1628';
+  if(P.length===0) return;
+
+  /* ── METABALL PASS ──────────────────────────────
+     1. Draw soft blobs on offscreen with heavy blur
+     2. Composite with threshold using globalCompositeOperation
+     Result: blobs MERGE when close → liquid water look
+  ─────────────────────────────────────────────── */
+  const oc = getOffscreen(uid, displayW, displayH);
+  const octx = oc.getContext('2d');
+  octx.clearRect(0,0,displayW,displayH);
+
+  // Draw each particle as a large soft radial gradient blob
+  for(const p of P){
+    const px=p.x*sx, py=p.y*sy, pr=p.r*sx*2.2;
+    const g=octx.createRadialGradient(px,py,0,px,py,pr);
+    // High alpha center, transparent edge — blur will blend them together
+    g.addColorStop(0,   'rgba(30,120,255,1)');
+    g.addColorStop(0.4, 'rgba(20,90,210,0.9)');
+    g.addColorStop(0.75,'rgba(10,60,160,0.4)');
+    g.addColorStop(1,   'rgba(5,30,100,0)');
+    octx.beginPath();
+    octx.arc(px,py,pr,0,Math.PI*2);
+    octx.fillStyle=g;
+    octx.fill();
+  }
+
+  // Apply strong blur — this is what creates the metaball merge effect
+  const blurAmt = Math.max(6, P[0].r*sx*0.9);
+  ctx.save();
+  ctx.filter=`blur(${blurAmt}px) contrast(18) brightness(1.1)`;
+  // Clip to bottle before compositing
+  ctx.scale(1,1);
+  clipBottle(ctx);ctx.clip();  // can't scale here, offscreen is already scaled
+  // Reset scale for direct pixel draw
+  ctx.setTransform(1,0,0,1,0,0);
+  clipBottle(ctx); // re-clip without scale (offscreen is already in display coords)
+  ctx.clip();
+  ctx.drawImage(oc,0,0);
+  ctx.filter='none';
+  ctx.restore();
+
+  /* ── COLOR PASS ─────────────────────────────────
+     After metaball merge, paint the merged shape
+     with beautiful water colors + specular highlights
+  ─────────────────────────────────────────────── */
+  ctx.save();
+  ctx.scale(sx,sy);
+  clipBottle(ctx);ctx.clip();
+
+  // Water color overlay using source-atop
+  const bodyGrad=ctx.createLinearGradient(27,0,173,0);
+  bodyGrad.addColorStop(0,  'rgba(15,80,200,0.18)');
+  bodyGrad.addColorStop(0.4,'rgba(40,130,255,0.08)');
+  bodyGrad.addColorStop(1,  'rgba(10,50,160,0.18)');
+  ctx.fillStyle=bodyGrad;
   ctx.fillRect(0,0,CW,CH);
 
-  // ── draw particles ────────────────
+  // Specular highlights on particles (individual glints)
+  ctx.globalCompositeOperation='screen';
   for(const p of P){
-    // outer glow / blob
-    const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*1.8);
-    g.addColorStop(0,   'rgba(79,170,255,1)');
-    g.addColorStop(0.45,'rgba(40,120,220,0.85)');
-    g.addColorStop(1,   'rgba(10,60,160,0)');
-    ctx.beginPath();
-    ctx.arc(p.x,p.y,p.r*1.8,0,Math.PI*2);
-    ctx.fillStyle=g;
-    ctx.fill();
+    // Main specular
+    const sg=ctx.createRadialGradient(p.x-p.r*.3,p.y-p.r*.35,0,p.x-p.r*.2,p.y-p.r*.2,p.r*.55);
+    sg.addColorStop(0,'rgba(255,255,255,0.75)');
+    sg.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r*.7,0,Math.PI*2);
+    ctx.fillStyle=sg;ctx.fill();
+    // Tiny bright glint
+    ctx.beginPath();ctx.arc(p.x-p.r*.28,p.y-p.r*.32,p.r*.15,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,0.9)';ctx.fill();
   }
-
-  // solid cores — makes them look like actual drops
-  for(const p of P){
-    ctx.beginPath();
-    ctx.arc(p.x,p.y,p.r*.75,0,Math.PI*2);
-    ctx.fillStyle='rgba(100,190,255,0.65)';
-    ctx.fill();
-  }
-
-  // glint highlights
-  for(const p of P){
-    ctx.beginPath();
-    ctx.arc(p.x-p.r*.28,p.y-p.r*.28,p.r*.2,0,Math.PI*2);
-    ctx.fillStyle='rgba(255,255,255,0.7)';
-    ctx.fill();
-  }
-
+  ctx.globalCompositeOperation='source-over';
   ctx.restore();
 }
 
@@ -339,8 +408,8 @@ function startRaf(uid){
 function initTilt(){
   function onMotion(e){
     const a=e.accelerationIncludingGravity; if(!a||a.x==null)return;
-    gx=Math.max(-2,Math.min(2,  a.x/9.8));
-    gy=Math.max(-2,Math.min(2, -a.y/9.8));
+    gx=Math.max(-2,Math.min(2,-a.x/9.8));
+    gy=Math.max(-2,Math.min(2, a.y/9.8));
   }
   if(window.DeviceMotionEvent){
     if(typeof DeviceMotionEvent.requestPermission==='function'){
@@ -354,7 +423,7 @@ function initTilt(){
   }
   // desktop: mouse tilt
   window.addEventListener('mousemove',e=>{
-    gx=((e.clientX-window.innerWidth/2)/(window.innerWidth/2))*1.4;
+    gx=-((e.clientX-window.innerWidth/2)/(window.innerWidth/2))*1.4;
   });
   // desktop: dblclick shake
   window.addEventListener('dblclick',()=>{
@@ -437,9 +506,15 @@ function makeCardHTML(b,idx){
     </div>
     <div class="ptrack"><div class="pfill" id="prog-${uid}"></div></div>
     <div class="btn-row">
-      <button class="btn-ghost" id="undo-${uid}" disabled>- ${ML_PER_DRINK} ML</button>
-      <button class="btn-ghost" id="add50-${uid}">+ ${ML_PER_DRINK} ML</button>
-      <button class="btn-add"   id="addbottle-${uid}">+ Botella</button>
+      <button class="btn-ml btn-minus" id="undo-${uid}" disabled>
+        <span class="btn-ml-icon">−</span>
+        <span class="btn-ml-label">50 ML</span>
+      </button>
+      <button class="btn-add" id="addbottle-${uid}">+ Botella</button>
+      <button class="btn-ml btn-plus" id="add50-${uid}">
+        <span class="btn-ml-icon">+</span>
+        <span class="btn-ml-label">50 ML</span>
+      </button>
     </div>
   </div>`;
 }
