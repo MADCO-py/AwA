@@ -781,66 +781,69 @@ function flashNFC(uid){
   if(navigator.vibrate) navigator.vibrate([30,20,60]);
 }
 
-// ── Tab heartbeat: mark this tab as alive every 3s ──────
-const TAB_KEY = 'awa-tab-alive';
-const TAB_ID  = Date.now() + Math.random();
-function heartbeat(){
-  localStorage.setItem(TAB_KEY, JSON.stringify({id:TAB_ID, ts:Date.now()}));
-}
-heartbeat();
-setInterval(heartbeat, 3000);
-window.addEventListener('focus', heartbeat);
-// Clear on unload
-window.addEventListener('beforeunload',()=>{
-  const alive = JSON.parse(localStorage.getItem(TAB_KEY)||'{}');
-  if(alive.id === TAB_ID) localStorage.removeItem(TAB_KEY);
-});
+// ── Tab presence via BroadcastChannel PING ──────────────
+// More reliable than localStorage heartbeat on mobile.
+// When NFC tab opens, it sends PING and waits for PONG.
+// If existing tab responds with PONG within 600ms → it's alive.
+// No localStorage state to go stale when browser kills the tab.
+const TAB_BC = new BroadcastChannel('awa-tab');
 
-function isMainTabAlive(){
-  const alive = JSON.parse(localStorage.getItem(TAB_KEY)||'{}');
-  if(!alive.ts) return false;
-  // Consider alive if heartbeat < 6s ago AND it's not us
-  return (Date.now() - alive.ts < 6000) && (alive.id !== TAB_ID);
-}
+// Existing tabs always reply to PING
+TAB_BC.onmessage = e => {
+  if(e.data === 'PING') TAB_BC.postMessage('PONG');
+};
 
 function handleURL(){
   const p=new URLSearchParams(location.search);
   if(p.get('action')==='drink'){
     history.replaceState({},'',location.pathname);
 
-    // Check if another AwA tab is already open and alive
-    if(isMainTabAlive()){
-      // Yes — broadcast and close this tab
-      const bc = new BroadcastChannel('awa-nfc');
-      bc.postMessage({type:'DRINK', bottle: p.get('bottle')||'1'});
-      bc.close();
+    // Send PING — if any existing AwA tab is alive it will PONG back
+    const pingCh = new BroadcastChannel('awa-tab');
+    let gotPong = false;
 
-      // Show quick confirmation then close
-      document.body.innerHTML=`
-        <div style="display:flex;align-items:center;justify-content:center;
-          height:100dvh;background:#080c14;
-          font-family:-apple-system,sans-serif;flex-direction:column;gap:14px;">
-          <svg width="44" height="54" viewBox="0 0 24 28" fill="#0a84ff">
-            <path d="M12 1C12 1 3 11 3 17a9 9 0 0018 0C21 11 12 1 12 1z"/>
-          </svg>
-          <span style="font-size:17px;font-weight:600;color:#fff;letter-spacing:-.02em">+50 ML</span>
-          <span style="font-size:11px;color:rgba(255,255,255,.35);letter-spacing:.12em">REGISTRADO</span>
-        </div>`;
-      setTimeout(()=>window.close(), 900);
-    } else {
-      // No other tab alive — handle here normally, stay open
-      const b=bottles[current];
-      if(b) flashNFC(b.id);
-      addMl(current, ML_PER_DRINK);
-    }
+    pingCh.onmessage = e => {
+      if(e.data === 'PONG') gotPong = true;
+    };
+    pingCh.postMessage('PING');
+
+    // Wait 600ms for a PONG
+    setTimeout(()=>{
+      pingCh.close();
+
+      if(gotPong){
+        // Existing tab is alive — send drink there and close this tab
+        const drinkCh = new BroadcastChannel('awa-nfc');
+        drinkCh.postMessage({type:'DRINK', bottle: p.get('bottle')||'1'});
+        drinkCh.close();
+
+        // Confirmation screen
+        document.body.innerHTML=`
+          <div style="display:flex;align-items:center;justify-content:center;
+            height:100dvh;background:#080c14;
+            font-family:-apple-system,sans-serif;flex-direction:column;gap:14px;">
+            <svg width="44" height="54" viewBox="0 0 24 28" fill="#0a84ff">
+              <path d="M12 1C12 1 3 11 3 17a9 9 0 0018 0C21 11 12 1 12 1z"/>
+            </svg>
+            <span style="font-size:17px;font-weight:600;color:#fff;letter-spacing:-.02em">+50 ML</span>
+            <span style="font-size:11px;color:rgba(255,255,255,.35);letter-spacing:.12em">REGISTRADO</span>
+          </div>`;
+        setTimeout(()=>window.close(), 900);
+
+      } else {
+        // No existing tab — stay open and handle drink here
+        const b=bottles[current];
+        if(b) flashNFC(b.id);
+        addMl(current, ML_PER_DRINK);
+      }
+    }, 600);
   }
 }
 
-// Listen for NFC drink from another tab
+// Listen for drink broadcast from NFC tab
 const _bc = new BroadcastChannel('awa-nfc');
 _bc.onmessage = e => {
   if(e.data?.type==='DRINK'){
-    heartbeat(); // refresh our heartbeat
     const b=bottles[current];
     if(b) flashNFC(b.id);
     addMl(current, ML_PER_DRINK);
